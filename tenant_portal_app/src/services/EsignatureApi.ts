@@ -14,8 +14,29 @@ export interface EsignEnvelope {
   provider: string;
   providerEnvelopeId: string;
   status: string;
+  providerStatus?: string;
   createdAt: string;
+  updatedAt?: string;
   participants: EsignParticipant[];
+  signedPdfDocument?: {
+    id: number;
+    fileName: string;
+  } | null;
+  auditTrailDocument?: {
+    id: number;
+    fileName: string;
+  } | null;
+  lease?: {
+    id: number;
+    tenant?: {
+      id: number;
+      username: string;
+    } | null;
+  };
+  createdBy?: {
+    id: number;
+    username: string;
+  };
 }
 
 export interface EnvelopeRecipientInput {
@@ -76,7 +97,11 @@ export const createRecipientView = async (
   envelopeId: number,
   returnUrl: string,
 ): Promise<string> => {
-  const response = await fetch(`/api/esignature/envelopes/${envelopeId}/recipient-view`, {
+  // Use apiClient to ensure correct base URL
+  const base = import.meta.env.VITE_API_URL ?? '/api';
+  const url = `${base.replace(/\/$/, '')}/esignature/envelopes/${envelopeId}/recipient-view`;
+  
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -86,9 +111,135 @@ export const createRecipientView = async (
   });
 
   if (!response.ok) {
-    throw new Error(await readErrorResponse(response));
+    const errorText = await readErrorResponse(response);
+    // Handle 401/403 specifically
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('You are not authorized to sign this document. Please contact support if you believe this is an error.');
+    }
+    throw new Error(errorText);
   }
 
   const data = (await response.json()) as { url: string };
+  
+  // Validate the URL before returning
+  if (!data.url || typeof data.url !== 'string') {
+    throw new Error('Invalid response from server: missing or invalid signing URL');
+  }
+  
   return data.url;
+};
+
+export const getEnvelope = async (token: string, envelopeId: number): Promise<EsignEnvelope> => {
+  const response = await fetch(`/api/esignature/envelopes/${envelopeId}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorResponse(response));
+  }
+
+  return (await response.json()) as EsignEnvelope;
+};
+
+export const voidEnvelope = async (
+  token: string,
+  envelopeId: number,
+  reason?: string,
+): Promise<EsignEnvelope> => {
+  const response = await fetch(`/api/esignature/envelopes/${envelopeId}/void`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorResponse(response));
+  }
+
+  return (await response.json()) as EsignEnvelope;
+};
+
+export const refreshEnvelopeStatus = async (token: string, envelopeId: number): Promise<EsignEnvelope> => {
+  const response = await fetch(`/api/esignature/envelopes/${envelopeId}/refresh`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorResponse(response));
+  }
+
+  return (await response.json()) as EsignEnvelope;
+};
+
+export const resendNotifications = async (
+  token: string,
+  envelopeId: number,
+): Promise<{ success: boolean; participantsNotified: number; reminderCount: number }> => {
+  const response = await fetch(`/api/esignature/envelopes/${envelopeId}/resend`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorResponse(response));
+  }
+
+  return (await response.json()) as { success: boolean; participantsNotified: number; reminderCount: number };
+};
+
+export const downloadSignedDocument = async (token: string, envelopeId: number): Promise<void> => {
+  const response = await fetch(`/api/esignature/envelopes/${envelopeId}/documents/signed`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorResponse(response));
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lease-${envelopeId}-signed.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
+export const downloadCertificate = async (token: string, envelopeId: number): Promise<void> => {
+  const response = await fetch(`/api/esignature/envelopes/${envelopeId}/documents/certificate`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorResponse(response));
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lease-${envelopeId}-certificate.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 };

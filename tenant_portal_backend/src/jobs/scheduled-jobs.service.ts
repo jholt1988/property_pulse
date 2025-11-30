@@ -7,6 +7,7 @@ import { AIPaymentMetricsService } from '../payments/ai-payment-metrics.service'
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '@prisma/client';
 import { subDays } from 'date-fns';
+import { EsignatureService } from '../esignature/esignature.service';
 
 @Injectable()
 export class ScheduledJobsService {
@@ -18,6 +19,7 @@ export class ScheduledJobsService {
     private readonly aiPaymentService: AIPaymentService,
     private readonly aiMetrics: AIPaymentMetricsService,
     private readonly notificationsService: NotificationsService,
+    private readonly esignatureService: EsignatureService,
   ) {}
 
   /**
@@ -416,6 +418,26 @@ export class ScheduledJobsService {
       
     } catch (error) {
       this.logger.error('Failed to generate monthly reports:', error);
+    }
+  }
+
+  /**
+   * Send reminders for pending e-signature envelopes daily at 10 AM
+   */
+  @Cron('0 10 * * *', {
+    name: 'sendEsignatureReminders',
+    timeZone: 'America/New_York',
+  })
+  async sendEsignatureReminders() {
+    this.logger.log('Checking for pending e-signature envelopes to send reminders...');
+
+    try {
+      const result = await this.esignatureService.sendRemindersForPendingEnvelopes();
+      this.logger.log(
+        `E-signature reminders sent: ${result.sent} notifications sent, ${result.skipped} envelopes skipped`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to send e-signature reminders:', error);
     }
   }
 

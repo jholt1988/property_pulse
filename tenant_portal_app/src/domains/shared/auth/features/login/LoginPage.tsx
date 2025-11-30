@@ -42,8 +42,43 @@ export const LoginPage: React.FC = () => {
         login(data.access_token);
         // Wait for auth state to update, then redirect
         // Use a small delay to ensure token is stored and state is updated
-        await new Promise(resolve => setTimeout(resolve, 50));
-        navigate(redirectUrl || '/dashboard', { replace: true });
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Decode token to get user role for role-based routing
+        try {
+          const { jwtDecode } = await import('jwt-decode');
+          const decoded = jwtDecode<{ role?: string }>(data.access_token);
+          const userRole = decoded.role;
+          
+          // Route based on role
+          let targetUrl = '/dashboard'; // Default fallback
+          
+          if (userRole === 'TENANT') {
+            targetUrl = '/dashboard'; // TenantDashboard will be shown
+          } else if (userRole === 'PROPERTY_MANAGER' || userRole === 'ADMIN') {
+            targetUrl = '/dashboard'; // MainDashboard will be shown
+          }
+          
+          // Only use redirectUrl if it's not the login page and user has access
+          if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/') {
+            // Check if redirect URL is appropriate for user role
+            const isTenantRoute = redirectUrl.startsWith('/my-lease') || redirectUrl.startsWith('/inspections');
+            const isManagerRoute = redirectUrl.startsWith('/lease-management') || 
+                                  redirectUrl.startsWith('/properties') ||
+                                  redirectUrl.startsWith('/rental-applications-management');
+            
+            if ((userRole === 'TENANT' && (isTenantRoute || redirectUrl === '/dashboard')) ||
+                ((userRole === 'PROPERTY_MANAGER' || userRole === 'ADMIN') && (isManagerRoute || redirectUrl === '/dashboard'))) {
+              targetUrl = redirectUrl;
+            }
+          }
+          
+          navigate(targetUrl, { replace: true });
+        } catch (error) {
+          // If token decode fails, just go to dashboard
+          console.error('Failed to decode token for role-based routing:', error);
+          navigate('/dashboard', { replace: true });
+        }
       }
     } catch (err: unknown) {
       let message = 'Login failed';

@@ -6,6 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { MaintenanceModule } from '../maintenance/maintenance.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { EsignatureModule } from '../esignature/esignature.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PaymentsModule } from '../payments/payments.module';
     MaintenanceModule,
     NotificationsModule,
     PaymentsModule,
+    EsignatureModule,
   ],
   providers: [
     ScheduledJobsService,

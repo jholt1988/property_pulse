@@ -1,7 +1,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../../AuthContext';
-import { createRecipientView, EsignEnvelope, EsignParticipant } from '../../../../services/EsignatureApi';
+import {
+  createRecipientView,
+  EsignEnvelope,
+  EsignParticipant,
+  downloadSignedDocument,
+  downloadCertificate,
+} from '../../../../services/EsignatureApi';
 import { apiFetch } from '../../../../services/apiClient';
 
 type LeaseStatus =
@@ -217,15 +223,30 @@ const MyLeasePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = (await apiFetch('/leases/my-lease', { token })) as Lease;
-        setLease(data);
-        const notes: Record<number, string> = {};
-        (data.renewalOffers ?? []).forEach((offer) => {
-          notes[offer.id] = '';
-        });
-        setResponseNotes(notes);
+        const data = (await apiFetch('/leases/my-lease', { token })) as Lease | null;
+        
+        if (!data) {
+          // Tenant doesn't have a lease yet
+          setError('You do not have an active lease. Please contact your property manager.');
+          setLease(null);
+        } else {
+          setLease(data);
+          const notes: Record<number, string> = {};
+          (data.renewalOffers ?? []).forEach((offer) => {
+            notes[offer.id] = '';
+          });
+          setResponseNotes(notes);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to load lease details.');
+        const errorMessage = err instanceof Error ? err.message : 'Unable to load lease details.';
+        
+        // Check if it's an authorization error
+        if (errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('Unauthorized') || errorMessage.includes('Forbidden')) {
+          setError('You are not authorized to view lease information. Please contact support if you believe this is an error.');
+        } else {
+          setError(errorMessage);
+        }
+        setLease(null);
       } finally {
         setLoading(false);
       }
@@ -236,35 +257,48 @@ const MyLeasePage: React.FC = () => {
 
   const launchSigningSession = async (envelopeId: number) => {
     if (!token) {
+      setSigningStatus({
+        loading: false,
+        message: null,
+        error: 'You must be logged in to sign documents.',
+      });
       return;
     }
     setSigningStatus({ loading: true, message: null, error: null });
     
-    // Open window immediately to avoid popup blocker
-    // We'll update its location once we have the URL
-    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-    
-    if (!newWindow) {
-      setSigningStatus({
-        loading: false,
-        message: null,
-        error: 'Popup blocked. Please allow popups for this site and try again.',
-      });
-      return;
-    }
-    
     try {
-      const url = await createRecipientView(token, envelopeId, window.location.href);
-      // Update the window location with the actual URL
-      newWindow.location.href = url;
+      // Get the return URL - use the current page URL
+      const returnUrl = `${window.location.origin}${window.location.pathname}`;
+      const url = await createRecipientView(token, envelopeId, returnUrl);
+      
+      // Validate URL before opening
+      if (!url || url === 'about:blank' || !url.startsWith('http')) {
+        throw new Error('Invalid signing URL received from server');
+      }
+      
+      // Open the signing URL directly - this avoids popup blocker issues
+      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      
+      if (!newWindow) {
+        // If popup is blocked, try redirecting in the same window
+        if (confirm('Popup was blocked. Would you like to open the signing page in this window instead?')) {
+          window.location.href = url;
+          return;
+        }
+        setSigningStatus({
+          loading: false,
+          message: null,
+          error: 'Popup blocked. Please allow popups for this site and try again.',
+        });
+        return;
+      }
+      
       setSigningStatus({ loading: false, message: 'Signing session opened in a new tab.', error: null });
     } catch (err) {
-      // Close the window if we failed to get the URL
-      newWindow.close();
       setSigningStatus({
         loading: false,
         message: null,
-        error: err instanceof Error ? err.message : 'Unable to launch signing session.',
+        error: err instanceof Error ? err.message : 'Unable to launch signing session. Please try again.',
       });
     }
   };
@@ -494,16 +528,52 @@ const MyLeasePage: React.FC = () => {
                   </div>
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-gray-500">Status: {envelope.status}</p>
-                    {!isComplete && (
-                      <button
-                        type="button"
-                        className="rounded bg-indigo-600 px-3 py-1 text-xs font-semibold text-white disabled:bg-indigo-300"
-                        onClick={() => launchSigningSession(envelope.id)}
-                        disabled={signingStatus.loading}
-                      >
-                        {signingStatus.loading ? 'Launching…' : 'Launch Signing Session'}
-                      </button>
-                    )}
+                    <div className="flex gap-2">
+                      {!isComplete && (
+                        <button
+                          type="button"
+                          className="rounded bg-indigo-600 px-3 py-1 text-xs font-semibold text-white disabled:bg-indigo-300 hover:bg-indigo-700"
+                          onClick={() => launchSigningSession(envelope.id)}
+                          disabled={signingStatus.loading}
+                        >
+                          {signingStatus.loading ? 'Launching…' : 'Launch Signing Session'}
+                        </button>
+                      )}
+                      {isComplete && envelope.signedPdfDocument && (
+                        <>
+                          <button
+                            type="button"
+                            className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
+                            onClick={async () => {
+                              try {
+                                await downloadSignedDocument(token!, envelope.id);
+                              } catch (err) {
+                                console.error('Failed to download signed document:', err);
+                                alert('Failed to download document. Please try again.');
+                              }
+                            }}
+                          >
+                            Download Signed PDF
+                          </button>
+                          {envelope.auditTrailDocument && (
+                            <button
+                              type="button"
+                              className="rounded bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
+                              onClick={async () => {
+                                try {
+                                  await downloadCertificate(token!, envelope.id);
+                                } catch (err) {
+                                  console.error('Failed to download certificate:', err);
+                                  alert('Failed to download certificate. Please try again.');
+                                }
+                              }}
+                            >
+                              Download Certificate
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

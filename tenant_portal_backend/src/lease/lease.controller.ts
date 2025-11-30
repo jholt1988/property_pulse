@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Param, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Param, Put, ForbiddenException, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { LeaseService } from './lease.service';
 import { AILeaseRenewalMetricsService } from './ai-lease-renewal-metrics.service';
@@ -23,6 +23,8 @@ interface AuthenticatedRequest extends Request {
 @Controller('leases')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class LeaseController {
+  private readonly logger = new Logger(LeaseController.name);
+
   constructor(
     private readonly leaseService: LeaseService,
     private readonly aiMetrics: AILeaseRenewalMetricsService,
@@ -42,8 +44,28 @@ export class LeaseController {
 
   @Get('my-lease')
   @Roles(Role.TENANT)
-  getMyLease(@Request() req: AuthenticatedRequest) {
-    return this.leaseService.getLeaseByTenantId(req.user.userId);
+  async getMyLease(@Request() req: AuthenticatedRequest) {
+    // Verify user is authenticated and has TENANT role
+    // The RolesGuard should handle this, but we add an extra check for safety
+    if (!req.user) {
+      this.logger.warn('getMyLease called without authenticated user');
+      throw new ForbiddenException('Authentication required.');
+    }
+    
+    if (req.user.role !== Role.TENANT) {
+      this.logger.warn(`getMyLease called by user with role ${req.user.role}, expected TENANT`);
+      throw new ForbiddenException('Only tenants can access their lease information.');
+    }
+    
+    this.logger.debug(`Fetching lease for tenant ${req.user.userId}`);
+    const lease = await this.leaseService.getLeaseByTenantId(req.user.userId);
+    
+    if (!lease) {
+      this.logger.debug(`No lease found for tenant ${req.user.userId}`);
+    }
+    
+    // Return null if no lease exists - frontend should handle this gracefully
+    return lease;
   }
 
   @Get(':id')

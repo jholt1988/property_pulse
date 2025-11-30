@@ -74,15 +74,38 @@ const RequireAuth = () => {
 };
 
 const RequireRole = ({ allowedRoles }: { allowedRoles: Array<string> }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const location = useLocation();
   
-  if (!user?.role) {
-    return <Navigate to="/" replace />;
+  // If no token, RequireAuth will handle redirect
+  if (!token) {
+    return null; // RequireAuth will redirect
+  }
+  
+  // Wait for user to be loaded (token exists but user might not be decoded yet)
+  if (!user) {
+    // Show loading state while user is being decoded
+    return (
+      <div className="min-h-screen w-full bg-deep-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-neon-blue/30 border-t-neon-blue rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400 text-sm font-mono">LOADING...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!user.role) {
+    // User has token but no role - redirect to unauthorized
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 
   // If user doesn't have required role, show unauthorized page
-  return allowedRoles.includes(user.role) ? <Outlet /> : <Navigate to="/unauthorized" state={{ from: location }} replace />;
+  if (!allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+  }
+  
+  return <Outlet />;
 };
 
 const RoleBasedShell = () => {

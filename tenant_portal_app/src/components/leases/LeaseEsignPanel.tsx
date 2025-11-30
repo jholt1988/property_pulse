@@ -1,5 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { CreateEnvelopePayload, EsignEnvelope, EnvelopeRecipientInput, createEnvelope } from '../../services/EsignatureApi';
+import {
+  CreateEnvelopePayload,
+  EsignEnvelope,
+  EnvelopeRecipientInput,
+  createEnvelope,
+  voidEnvelope,
+  refreshEnvelopeStatus,
+  resendNotifications,
+  downloadSignedDocument,
+  downloadCertificate,
+  getEnvelope,
+} from '../../services/EsignatureApi';
+import { EnvelopeDetailsModal } from './EnvelopeDetailsModal';
+import { Button } from '@nextui-org/react';
+import { Eye } from 'lucide-react';
 
 interface LeaseEsignPanelProps {
   token: string;
@@ -20,6 +34,7 @@ const statusColorClass: Record<string, string> = {
   SENT: 'bg-blue-100 text-blue-700',
   DELIVERED: 'bg-indigo-100 text-indigo-700',
   DECLINED: 'bg-rose-100 text-rose-700',
+  VOIDED: 'bg-gray-100 text-gray-700',
   ERROR: 'bg-amber-100 text-amber-700',
 };
 
@@ -38,6 +53,10 @@ export const LeaseEsignPanel: React.FC<LeaseEsignPanelProps> = ({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [additionalRecipients, setAdditionalRecipients] = useState<AdditionalRecipient[]>([]);
+  const [loadingEnvelopes, setLoadingEnvelopes] = useState<Set<number>>(new Set());
+  const [voidReason, setVoidReason] = useState<{ [key: number]: string }>({});
+  const [showVoidDialog, setShowVoidDialog] = useState<number | null>(null);
+  const [selectedEnvelopeId, setSelectedEnvelopeId] = useState<number | null>(null);
 
   const sortedEnvelopes = useMemo(
     () => [...envelopes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -207,33 +226,244 @@ export const LeaseEsignPanel: React.FC<LeaseEsignPanelProps> = ({
         {sortedEnvelopes.length === 0 ? (
           <p className="text-xs text-foreground-500">No signature packets have been sent yet.</p>
         ) : (
-          sortedEnvelopes.map((envelope) => (
-            <div key={envelope.id} className="rounded border border-default-200 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Envelope #{envelope.id}</p>
-                  <p className="text-xs text-foreground-500">
-                    {new Date(envelope.createdAt).toLocaleString()} • Provider {envelope.provider}
-                  </p>
-                </div>
-                <span className={`rounded px-2 py-1 text-xs font-semibold ${statusColorClass[envelope.status] || 'bg-default-200 text-default-700'}`}>
-                  {envelope.status}
-                </span>
-              </div>
-              <div className="mt-3 space-y-1 text-xs">
-                {envelope.participants.map((participant) => (
-                  <div key={participant.id} className="flex items-center justify-between">
-                    <span>
-                      {participant.name} • {participant.role}
-                    </span>
-                    <span className="font-semibold text-foreground-600">{participant.status}</span>
+          sortedEnvelopes.map((envelope) => {
+            const isLoading = loadingEnvelopes.has(envelope.id);
+            const canVoid = envelope.status !== 'COMPLETED' && envelope.status !== 'VOIDED';
+            const canResend = envelope.status !== 'COMPLETED' && envelope.status !== 'VOIDED';
+            const canDownload = envelope.status === 'COMPLETED' && envelope.signedPdfDocument;
+
+            return (
+              <div key={envelope.id} className="rounded border border-default-200 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Envelope #{envelope.id}</p>
+                    <p className="text-xs text-foreground-500">
+                      {new Date(envelope.createdAt).toLocaleString()} • Provider {envelope.provider}
+                    </p>
                   </div>
-                ))}
+                  <span className={`rounded px-2 py-1 text-xs font-semibold ${statusColorClass[envelope.status] || 'bg-default-200 text-default-700'}`}>
+                    {envelope.status}
+                  </span>
+                </div>
+                <div className="mt-3 space-y-1 text-xs">
+                  {envelope.participants.map((participant) => (
+                    <div key={participant.id} className="flex items-center justify-between">
+                      <span>
+                        {participant.name} • {participant.role}
+                      </span>
+                      <span className="font-semibold text-foreground-600">{participant.status}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="light"
+                    startContent={<Eye size={14} />}
+                    onPress={() => setSelectedEnvelopeId(envelope.id)}
+                  >
+                    View Details
+                  </Button>
+                  {canDownload && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setLoadingEnvelopes((prev) => new Set(prev).add(envelope.id));
+                            await downloadSignedDocument(token, envelope.id);
+                            setFeedback('Signed document downloaded successfully.');
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Failed to download document.');
+                          } finally {
+                            setLoadingEnvelopes((prev) => {
+                              const next = new Set(prev);
+                              next.delete(envelope.id);
+                              return next;
+                            });
+                          }
+                        }}
+                        disabled={isLoading}
+                        className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-60 hover:bg-emerald-700"
+                      >
+                        {isLoading ? 'Downloading…' : 'Download PDF'}
+                      </button>
+                      {envelope.auditTrailDocument && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              setLoadingEnvelopes((prev) => new Set(prev).add(envelope.id));
+                              await downloadCertificate(token, envelope.id);
+                              setFeedback('Certificate downloaded successfully.');
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : 'Failed to download certificate.');
+                            } finally {
+                              setLoadingEnvelopes((prev) => {
+                                const next = new Set(prev);
+                                next.delete(envelope.id);
+                                return next;
+                              });
+                            }
+                          }}
+                          disabled={isLoading}
+                          className="rounded bg-indigo-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-60 hover:bg-indigo-700"
+                        >
+                          {isLoading ? 'Downloading…' : 'Certificate'}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {canResend && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          setLoadingEnvelopes((prev) => new Set(prev).add(envelope.id));
+                          const result = await resendNotifications(token, envelope.id);
+                          setFeedback(`Notifications resent to ${result.participantsNotified} participant(s).`);
+                          if (onEnvelopeCreated) {
+                            const updated = await getEnvelope(token, envelope.id);
+                            onEnvelopeCreated(updated);
+                          }
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : 'Failed to resend notifications.');
+                        } finally {
+                          setLoadingEnvelopes((prev) => {
+                            const next = new Set(prev);
+                            next.delete(envelope.id);
+                            return next;
+                          });
+                        }
+                      }}
+                      disabled={isLoading}
+                      className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-60 hover:bg-blue-700"
+                    >
+                      {isLoading ? 'Sending…' : 'Resend'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setLoadingEnvelopes((prev) => new Set(prev).add(envelope.id));
+                        const updated = await refreshEnvelopeStatus(token, envelope.id);
+                        setFeedback('Envelope status refreshed.');
+                        if (onEnvelopeCreated) {
+                          onEnvelopeCreated(updated);
+                        }
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Failed to refresh status.');
+                      } finally {
+                        setLoadingEnvelopes((prev) => {
+                          const next = new Set(prev);
+                          next.delete(envelope.id);
+                          return next;
+                        });
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="rounded bg-gray-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-60 hover:bg-gray-700"
+                  >
+                    {isLoading ? 'Refreshing…' : 'Refresh'}
+                  </button>
+                  {canVoid && (
+                    <>
+                      {showVoidDialog === envelope.id ? (
+                        <div className="mt-2 flex flex-col gap-2 rounded border border-rose-200 bg-rose-50 p-2">
+                          <input
+                            type="text"
+                            placeholder="Reason for voiding (optional)"
+                            value={voidReason[envelope.id] || ''}
+                            onChange={(e) =>
+                              setVoidReason((prev) => ({
+                                ...prev,
+                                [envelope.id]: e.target.value,
+                              }))
+                            }
+                            className="w-full rounded border border-rose-300 p-1 text-xs"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  setLoadingEnvelopes((prev) => new Set(prev).add(envelope.id));
+                                  const updated = await voidEnvelope(token, envelope.id, voidReason[envelope.id]);
+                                  setFeedback('Envelope voided successfully.');
+                                  setShowVoidDialog(null);
+                                  setVoidReason((prev) => {
+                                    const next = { ...prev };
+                                    delete next[envelope.id];
+                                    return next;
+                                  });
+                                  if (onEnvelopeCreated) {
+                                    onEnvelopeCreated(updated);
+                                  }
+                                } catch (err) {
+                                  setError(err instanceof Error ? err.message : 'Failed to void envelope.');
+                                } finally {
+                                  setLoadingEnvelopes((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(envelope.id);
+                                    return next;
+                                  });
+                                }
+                              }}
+                              disabled={isLoading}
+                              className="rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-60 hover:bg-rose-700"
+                            >
+                              {isLoading ? 'Voiding…' : 'Confirm Void'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowVoidDialog(null);
+                                setVoidReason((prev) => {
+                                  const next = { ...prev };
+                                  delete next[envelope.id];
+                                  return next;
+                                });
+                              }}
+                              className="rounded bg-gray-400 px-3 py-1 text-xs font-medium text-white hover:bg-gray-500"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowVoidDialog(envelope.id)}
+                          disabled={isLoading}
+                          className="rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-60 hover:bg-rose-700"
+                        >
+                          Void
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {/* Envelope Details Modal */}
+      {selectedEnvelopeId && (
+        <EnvelopeDetailsModal
+          isOpen={!!selectedEnvelopeId}
+          onClose={() => setSelectedEnvelopeId(null)}
+          envelopeId={selectedEnvelopeId}
+          token={token}
+          canManage={true}
+          onEnvelopeUpdated={(updated) => {
+            onEnvelopeCreated?.(updated);
+            setSelectedEnvelopeId(null);
+          }}
+        />
+      )}
     </div>
   );
 };

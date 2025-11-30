@@ -288,7 +288,7 @@ export class NotificationsService {
   }
 
   async sendSignatureAlert(data: {
-    event: 'REQUESTED' | 'COMPLETED';
+    event: 'REQUESTED' | 'COMPLETED' | 'VOIDED';
     envelopeId: number;
     leaseId: number;
     participantName: string;
@@ -296,15 +296,36 @@ export class NotificationsService {
     email?: string;
     phone?: string;
   }) {
-    const type = data.event === 'REQUESTED' ? NotificationType.ESIGNATURE_REQUESTED : NotificationType.ESIGNATURE_COMPLETED;
-    const title =
-      data.event === 'REQUESTED'
-        ? `Signature requested for lease #${data.leaseId}`
-        : `Lease #${data.leaseId} signed`;
-    const message =
-      data.event === 'REQUESTED'
-        ? `${data.participantName}, please review and sign the pending lease documents.`
-        : `${data.participantName}, the lease packet has been fully executed.`;
+    let type: NotificationType;
+    let title: string;
+    let message: string;
+    let urgency: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM';
+
+    switch (data.event) {
+      case 'REQUESTED':
+        type = NotificationType.ESIGNATURE_REQUESTED;
+        title = `Signature requested for lease #${data.leaseId}`;
+        message = `${data.participantName}, please review and sign the pending lease documents.`;
+        urgency = 'MEDIUM';
+        break;
+      case 'COMPLETED':
+        type = NotificationType.ESIGNATURE_COMPLETED;
+        title = `Lease #${data.leaseId} signed`;
+        message = `${data.participantName}, the lease packet has been fully executed.`;
+        urgency = 'LOW';
+        break;
+      case 'VOIDED':
+        // Note: ESIGNATURE_VOIDED notification type needs to be added to the database enum
+        // For now, use SYSTEM_ANNOUNCEMENT as fallback
+        type = NotificationType.SYSTEM_ANNOUNCEMENT;
+        title = `Signature request for lease #${data.leaseId} cancelled`;
+        message = `${data.participantName}, the signature request has been cancelled. You no longer need to sign this document.`;
+        urgency = 'LOW';
+        break;
+      default:
+        this.logger.warn(`Unknown signature alert event: ${data.event}`);
+        return;
+    }
 
     if (data.userId) {
       await this.create({
@@ -312,11 +333,11 @@ export class NotificationsService {
         type,
         title,
         message,
-        metadata: { envelopeId: data.envelopeId, leaseId: data.leaseId },
+        metadata: { envelopeId: data.envelopeId, leaseId: data.leaseId, event: data.event },
         sendEmail: true,
         useAITiming: true,
         personalize: true,
-        urgency: data.event === 'REQUESTED' ? 'MEDIUM' : 'LOW',
+        urgency,
       });
     } else if (data.email) {
       try {
