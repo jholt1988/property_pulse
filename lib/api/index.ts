@@ -5,3 +5,4 @@ export * from "./payments";
 export * from "./inspections";
 export * from "./manager";
 export * from "./manager-admin";
+export * from "./application";
