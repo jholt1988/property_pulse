@@ -18,12 +18,23 @@
 
 ## Remaining recommended hardening
 
-1. Verify JWT signature server-side (currently role extraction decodes token payload only).
-2. Add refresh-token/session-rotation policy.
-3. Add CSRF protections for state-changing internal API routes if needed.
-4. Add stricter `sameSite`/`secure` policy in full HTTPS production.
-5. Add security headers policy (CSP, HSTS, frame-ancestors) via Next config/middleware.
-6. Add login rate-limit and account lockout UX handling in frontend.
+1. Add refresh-token/session-rotation policy.
+2. Add CSRF protections for state-changing internal API routes if needed.
+3. Add stricter CSP with nonce/hash strategy (current policy keeps `unsafe-inline` for compatibility).
+4. Validate `connect-src` allowlist against production API domains.
+5. Add login rate-limit and account lockout UX handling in frontend.
+
+## Security headers added
+
+Middleware now sets:
+
+- `Content-Security-Policy`
+- `Strict-Transport-Security` (production only)
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` (camera/microphone/geolocation disabled)
+- `Cross-Origin-Opener-Policy: same-origin`
 
 ## Validation checklist
 
