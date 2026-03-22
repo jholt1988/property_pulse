@@ -1,5 +1,7 @@
 # Keyring OS Starter
 
+[![Property Pulse CI](https://github.com/jholt1988/property_pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/jholt1988/property_pulse/actions/workflows/ci.yml)
+
 A production-minded **Next.js + Tailwind** starter for **Keyring OS — The Operating System for Real Estate**.
 
 ## Included
