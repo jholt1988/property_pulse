@@ -1,0 +1,24 @@
+"use client";
+
+import { AppShell } from "@/components/layout/app-shell";
+import { RoleGuard } from "@/components/auth/role-guard";
+
+const navItems = [
+  { label: "Dashboard", href: "/manager/dashboard", module: "core" as const },
+  { label: "Properties", href: "/manager/properties", module: "properties" as const },
+  { label: "Leases", href: "/manager/leases", module: "lease" as const },
+  { label: "Applications", href: "/manager/applications", module: "tenants" as const },
+  { label: "Reporting", href: "/manager/reporting", module: "finance" as const },
+  { label: "Users", href: "/manager/users", module: "tenants" as const },
+  { label: "Audit", href: "/manager/audit", module: "ai" as const },
+];
+
+export default function ManagerLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RoleGuard allowedRoles={["PROPERTY_MANAGER", "ADMIN"]}>
+      <AppShell title="Manager Console" subtitle="Operations Control" navItems={navItems}>
+        {children}
+      </AppShell>
+    </RoleGuard>
+  );
+}
