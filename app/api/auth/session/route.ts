@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Missing token" }, { status: 400 });
     }
 
-    const role = extractRoleFromJwt(token);
+    const role = await extractRoleFromJwt(token);
     if (!role) {
       return NextResponse.json({ message: "Unable to determine role" }, { status: 400 });
     }

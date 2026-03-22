@@ -12,6 +12,9 @@
   - manager route role gate
 - Login flow now exchanges backend token into server session cookie.
 - Topbar logout now clears session through server route.
+- Added JWT role extraction with signature verification support (`jsonwebtoken`) in `lib/auth/cookies.ts`.
+  - When `JWT_SECRET` is set, role extraction is cryptographically verified.
+  - In production without `JWT_SECRET`, role extraction fails closed.
 
 ## Remaining recommended hardening
 

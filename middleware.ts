@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractRoleFromJwt } from "@/lib/auth/cookies";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password", "/legal/privacy", "/legal/terms"];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
@@ -14,9 +15,15 @@ export function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get("session_token")?.value;
-  const role = req.cookies.get("session_role")?.value;
 
   if (!token) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  const role = await extractRoleFromJwt(token);
+  if (!role) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
