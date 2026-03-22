@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify:endpoints": "node scripts/check-endpoints.mjs"
   },
   "dependencies": {
     "next": "^15.5.14",
