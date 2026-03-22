@@ -40,6 +40,11 @@ Set:
 
 See `PRODUCTION_READINESS.md` for launch checklist and endpoint matrix.
 
+## Design system
+
+- `DESIGN_SYSTEM.md` — implementation rules, component architecture, and authoring checklist
+- `TOKEN_CONTRACT.json` — machine-readable design token contract
+
 ## Recommended next moves
 
 1. Connect domain data models to your PMS backend
