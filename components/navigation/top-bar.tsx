@@ -14,10 +14,10 @@ export function TopBar({ title, subtitle }: { title: string; subtitle?: string }
   };
 
   return (
-    <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-[#0B1220]/90 px-8 py-4 backdrop-blur-xl">
+    <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--kr-border-divider)] bg-keyring-navy/90 px-8 py-4 backdrop-blur-xl">
       <div>
-        {subtitle ? <div className="text-xs uppercase tracking-[0.22em] text-slate-500">{subtitle}</div> : null}
-        <div className="mt-1 text-lg font-semibold tracking-tight text-white">{title}</div>
+        {subtitle ? <div className="text-xs uppercase tracking-[0.22em] text-keyring-gray">{subtitle}</div> : null}
+        <div className="font-display mt-1 text-lg font-semibold tracking-tight text-white">{title}</div>
       </div>
       <div className="flex items-center gap-3">
         <div className="w-72">

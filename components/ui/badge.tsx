@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils";
 type BadgeTone = "success" | "warning" | "error" | "info" | "pending";
 
 const toneMap: Record<BadgeTone, string> = {
-  success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
-  warning: "border-amber-400/20 bg-amber-400/10 text-amber-300",
-  error: "border-red-400/20 bg-red-400/10 text-red-300",
-  info: "border-blue-400/20 bg-blue-400/10 text-blue-300",
-  pending: "border-violet-400/20 bg-violet-400/10 text-violet-300",
+  success: "border-keyring-success/30 bg-keyring-success/10 text-keyring-success",
+  warning: "border-keyring-warning/30 bg-keyring-warning/10 text-keyring-warning",
+  error: "border-keyring-error/30 bg-keyring-error/10 text-keyring-error",
+  info: "border-keyring-info/30 bg-keyring-info/10 text-keyring-info",
+  pending: "border-keyring-pending/30 bg-keyring-pending/10 text-keyring-pending",
 };
 
 export function Badge({ children, tone = "info", className }: { children: ReactNode; tone?: BadgeTone; className?: string }) {

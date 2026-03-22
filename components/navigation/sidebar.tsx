@@ -17,12 +17,12 @@ export function AppSidebar({ items }: { items: SidebarNavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <aside className="border-r border-white/10 bg-[#0A1020] px-4 py-5">
+    <aside className="border-r border-[var(--kr-border-divider)] bg-keyring-navy px-4 py-5">
       <div className="flex items-center gap-3 px-3 py-2">
         <LogoMark />
         <div>
-          <div className="text-xl font-semibold tracking-tight text-white">Keyring OS</div>
-          <div className="text-xs text-slate-400">Control Plane</div>
+          <div className="font-display text-xl font-semibold tracking-tight text-white">Keyring OS</div>
+          <div className="text-xs text-keyring-gray">Control Plane</div>
         </div>
       </div>
       <div className="mt-6 space-y-1">
@@ -41,7 +41,7 @@ function SidebarItem({ label, href, module, active }: SidebarNavItem) {
       href={href}
       className={cn(
         "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm transition",
-        active ? "border border-white/10 bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white",
+        active ? "border border-[var(--kr-border-primary)] bg-white/10 text-white" : "text-keyring-gray hover:bg-white/5 hover:text-white",
       )}
     >
       <div className={cn("h-2.5 w-2.5 rounded-full", moduleAccentClasses[module])} />
