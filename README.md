@@ -25,9 +25,20 @@ A production-minded **Next.js + Tailwind** starter for **Keyring OS — The Oper
 ## Run locally
 
 ```bash
+cp .env.example .env.local
 npm install
 npm run dev
 ```
+
+## Environment
+
+Set:
+
+- `NEXT_PUBLIC_API_BASE_URL` (required for API-connected pages)
+
+## Production readiness
+
+See `PRODUCTION_READINESS.md` for launch checklist and endpoint matrix.
 
 ## Recommended next moves
 
