@@ -24,9 +24,18 @@ export default function LoginPage() {
     try {
       const data = await loginRequest({ username, password, mfaCode: mfaCode || undefined });
       if (data.access_token) {
-        document.cookie = `session_token=${data.access_token}; path=/; SameSite=Lax`;
         const role = extractRoleFromToken(data.access_token);
-        if (role) document.cookie = `session_role=${role}; path=/; SameSite=Lax`;
+
+        const sessionRes = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: data.access_token }),
+        });
+
+        if (!sessionRes.ok) {
+          throw new Error("Unable to establish secure session");
+        }
+
         if (role === "PROPERTY_MANAGER" || role === "ADMIN") router.push("/manager/dashboard");
         else router.push("/tenant/dashboard");
       }

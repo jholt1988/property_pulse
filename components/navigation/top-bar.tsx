@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 export function TopBar({ title, subtitle }: { title: string; subtitle?: string }) {
   const router = useRouter();
 
-  const handleLogout = () => {
-    document.cookie = "session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
-    document.cookie = "session_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
   };
 
