@@ -4,16 +4,32 @@
 
 :root {
   color-scheme: dark;
+  --kr-brand-core: #3B82F6;
+  --kr-brand-navy: #0B1220;
+  --kr-brand-panel: #111827;
+  --kr-brand-card: #1F2937;
+  --kr-brand-gray: #94A3B8;
+  --kr-border-primary: rgba(148, 163, 184, 0.16);
+  --kr-border-divider: rgba(255, 255, 255, 0.06);
+  --kr-motion-fast: 120ms;
+  --kr-motion-base: 180ms;
+  --kr-motion-slow: 260ms;
+  --kr-motion-panel: 320ms;
+  --kr-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 html,
 body {
-  background: #0B1220;
+  background: var(--kr-brand-navy);
   color: #FFFFFF;
 }
 
 body {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
