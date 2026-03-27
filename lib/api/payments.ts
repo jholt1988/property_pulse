@@ -4,16 +4,57 @@ export type Invoice = { id: number; amount: number; dueDate: string; status: str
 export type Payment = { id: number; amount: number; paymentDate: string; status: string };
 export type PaymentMethod = { id: number; type: string; provider: string; brand?: string; last4?: string; expMonth?: number; expYear?: number };
 
-export async function getInvoices(token?: string) {
-  return apiClient<any>("/payments/invoices", { method: "GET", ...(token ? { token } : {}) });
+const toArray = <T,>(data: any, keys: string[]): T[] => {
+  if (Array.isArray(data)) return data as T[];
+  for (const k of keys) {
+    if (Array.isArray(data?.[k])) return data[k] as T[];
+  }
+  return [];
+};
+
+const normalizeInvoice = (item: any): Invoice => ({
+  id: Number(item?.id ?? 0),
+  amount: Number(item?.amount ?? 0),
+  dueDate: String(item?.dueDate ?? item?.dueAt ?? item?.createdAt ?? new Date().toISOString()),
+  status: String(item?.status ?? "UNKNOWN"),
+  description: item?.description ?? undefined,
+});
+
+const normalizePayment = (item: any): Payment => ({
+  id: Number(item?.id ?? 0),
+  amount: Number(item?.amount ?? 0),
+  paymentDate: String(item?.paymentDate ?? item?.createdAt ?? item?.date ?? new Date().toISOString()),
+  status: String(item?.status ?? "COMPLETED"),
+});
+
+const normalizeMethod = (item: any): PaymentMethod => ({
+  id: Number(item?.id ?? 0),
+  type: String(item?.type ?? "CARD"),
+  provider: String(item?.provider ?? "UNKNOWN"),
+  brand: item?.brand ?? undefined,
+  last4: item?.last4 ?? undefined,
+  expMonth: item?.expMonth ?? undefined,
+  expYear: item?.expYear ?? undefined,
+});
+
+export async function getInvoices(token?: string): Promise<Invoice[]> {
+  const data = await apiClient<any>("/payments/invoices", { method: "GET", ...(token ? { token } : {}) });
+  return toArray<any>(data, ["invoices", "items", "data"]).map(normalizeInvoice);
 }
 
-export async function getPaymentHistory(token?: string) {
-  return apiClient<any>("/payments/history", { method: "GET", ...(token ? { token } : {}) });
+export async function getPaymentHistory(token?: string): Promise<Payment[]> {
+  try {
+    const data = await apiClient<any>("/payments/history", { method: "GET", ...(token ? { token } : {}) });
+    return toArray<any>(data, ["payments", "items", "data"]).map(normalizePayment);
+  } catch {
+    const data = await apiClient<any>("/payments", { method: "GET", ...(token ? { token } : {}) });
+    return toArray<any>(data, ["payments", "items", "data"]).map(normalizePayment);
+  }
 }
 
-export async function getPaymentMethods(token?: string) {
-  return apiClient<any>("/payments/payment-methods", { method: "GET", ...(token ? { token } : {}) });
+export async function getPaymentMethods(token?: string): Promise<PaymentMethod[]> {
+  const data = await apiClient<any>("/payments/payment-methods", { method: "GET", ...(token ? { token } : {}) });
+  return toArray<any>(data, ["paymentMethods", "items", "data"]).map(normalizeMethod);
 }
 
 export async function getMyLease(token?: string) {

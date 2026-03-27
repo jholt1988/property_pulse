@@ -23,20 +23,39 @@ export type MaintenanceRequest = {
   createdAt: string;
 };
 
-export async function getMaintenanceRequests(token?: string) {
-  return apiClient<any>("/maintenance", {
+const toArray = <T,>(data: any): T[] => {
+  if (Array.isArray(data)) return data as T[];
+  if (Array.isArray(data?.items)) return data.items as T[];
+  if (Array.isArray(data?.requests)) return data.requests as T[];
+  if (Array.isArray(data?.data)) return data.data as T[];
+  return [];
+};
+
+const normalizeRequest = (item: any): MaintenanceRequest => ({
+  id: item?.id,
+  title: String(item?.title ?? "Maintenance request"),
+  description: String(item?.description ?? ""),
+  status: String(item?.status ?? "PENDING") as MaintenanceRequest["status"],
+  priority: String(item?.priority ?? "MEDIUM") as MaintenanceRequest["priority"],
+  createdAt: String(item?.createdAt ?? item?.updatedAt ?? new Date().toISOString()),
+});
+
+export async function getMaintenanceRequests(token?: string): Promise<MaintenanceRequest[]> {
+  const data = await apiClient<any>("/maintenance", {
     method: "GET",
     ...(token ? { token } : {}),
   });
+  return toArray<any>(data).map(normalizeRequest);
 }
 
 export async function createMaintenanceRequest(
   payload: { title: string; description: string; priority: MaintenanceRequest["priority"] },
   token?: string,
-) {
-  return apiClient<MaintenanceRequest>("/maintenance", {
+): Promise<MaintenanceRequest> {
+  const data = await apiClient<any>("/maintenance", {
     method: "POST",
     body: JSON.stringify(payload),
     ...(token ? { token } : {}),
   });
+  return normalizeRequest(data?.request ?? data?.item ?? data);
 }

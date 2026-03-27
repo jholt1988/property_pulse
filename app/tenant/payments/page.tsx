@@ -3,12 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getInvoices, getPaymentHistory, getPaymentMethods, type Invoice, type Payment, type PaymentMethod } from "@/lib/api";
 
-const norm = <T,>(data: any, keys: string[]): T[] => {
-  if (Array.isArray(data)) return data as T[];
-  for (const k of keys) if (Array.isArray(data?.[k])) return data[k] as T[];
-  return [];
-};
-
 const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
 
 export default function TenantPaymentsPage() {
@@ -29,9 +23,9 @@ export default function TenantPaymentsPage() {
           getPaymentHistory(token),
           getPaymentMethods(token),
         ]);
-        setInvoices(norm<Invoice>(i, ["invoices", "data", "items"]));
-        setHistory(norm<Payment>(h, ["payments", "data", "items"]));
-        setMethods(norm<PaymentMethod>(m, ["paymentMethods", "data", "items"]));
+        setInvoices(i as Invoice[]);
+        setHistory(h as Payment[]);
+        setMethods(m as PaymentMethod[]);
       } catch (e: any) {
         setError(e?.message || "Failed to load payment data");
       } finally {

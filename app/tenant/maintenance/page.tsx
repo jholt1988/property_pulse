@@ -3,14 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createMaintenanceRequest, getMaintenanceRequests, type MaintenanceRequest } from "@/lib/api";
 
-function normalizeList(data: any): MaintenanceRequest[] {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.requests)) return data.requests;
-  if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.items)) return data.items;
-  return [];
-}
-
 export default function TenantMaintenancePage() {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +18,7 @@ export default function TenantMaintenancePage() {
     setError(null);
     try {
       const token = document.cookie.match(/(?:^|; )session_token=([^;]+)/)?.[1];
-      const raw = await getMaintenanceRequests(token);
-      const list = normalizeList(raw).sort(
+      const list = (await getMaintenanceRequests(token)).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
       setRequests(list);
