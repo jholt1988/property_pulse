@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getDashboardMetrics, getPropertyLocations } from "@/lib/api";
+import { getActionIntents, getDashboardMetrics, getPropertyLocations } from "@/lib/api";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
 
@@ -42,9 +42,19 @@ const buildOsmEmbedUrl = (locations: PropertyLocation[]) => {
   return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik`;
 };
 
+type ActionIntent = {
+  id: string;
+  type: string;
+  description: string;
+  status: string;
+  priority: "HIGH" | "MEDIUM" | "LOW" | string;
+  createdAt: string;
+};
+
 export default function ManagerDashboardPage() {
   const [data, setData] = useState<any>(null);
   const [propertyLocations, setPropertyLocations] = useState<PropertyLocationsResponse | null>(null);
+  const [actionIntents, setActionIntents] = useState<ActionIntent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,12 +64,14 @@ export default function ManagerDashboardPage() {
       setError(null);
       try {
         const token = document.cookie.match(/(?:^|; )session_token=([^;]+)/)?.[1];
-        const [d, locations] = await Promise.all([
+        const [d, locations, intents] = await Promise.all([
           getDashboardMetrics(token),
           getPropertyLocations(token),
+          getActionIntents(token),
         ]);
         setData(d);
         setPropertyLocations(locations);
+        setActionIntents(Array.isArray(intents?.intents) ? intents.intents : []);
       } catch (e: any) {
         setError(e?.message || "Failed to load dashboard metrics");
       } finally {
@@ -123,6 +135,33 @@ export default function ManagerDashboardPage() {
           </>
         ) : (
           <p className="text-sm text-gray-500">No mapped property coordinates found yet.</p>
+        )}
+      </section>
+
+      <section className="rounded border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-500">Action Intents</p>
+            <p className="text-lg font-semibold">Recommended next actions</p>
+          </div>
+          <p className="text-xs text-gray-600">{actionIntents.length} items</p>
+        </div>
+
+        {actionIntents.length > 0 ? (
+          <ul className="space-y-2">
+            {actionIntents.slice(0, 5).map((intent) => (
+              <li key={intent.id} className="rounded border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{intent.type}</p>
+                  <span className="text-[11px] uppercase text-gray-500">{intent.priority}</span>
+                </div>
+                <p className="mt-1 text-sm text-gray-700">{intent.description}</p>
+                <p className="mt-1 text-xs text-gray-500">{intent.status} · {new Date(intent.createdAt).toLocaleString()}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500">No action intents available yet.</p>
         )}
       </section>
 
