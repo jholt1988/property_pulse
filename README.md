@@ -37,6 +37,30 @@ npm run dev
 Set:
 
 - `NEXT_PUBLIC_API_BASE_URL` (required for API-connected pages)
+- `BACKEND_API_ORIGIN` (recommended for local/server proxying to backend)
+
+### Hooking up to `pms-master/tenant_portal_backend`
+
+Recommended setup (avoids CORS/localhost browser issues):
+
+```env
+NEXT_PUBLIC_API_BASE_URL=/api/backend
+BACKEND_API_ORIGIN=http://127.0.0.1:3001
+```
+
+Then run both apps:
+
+```bash
+# terminal 1
+cd /data/.openclaw/workspace/pms-master/tenant_portal_backend
+npm run start:dev
+
+# terminal 2
+cd /data/.openclaw/workspace/imported/property-pulse
+npm run dev
+```
+
+`property_pulse` will call `/api/backend/*`, and Next.js will proxy to backend `http://127.0.0.1:3001/api/*`.
 
 ## Production readiness
 
