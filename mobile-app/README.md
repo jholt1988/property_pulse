@@ -44,6 +44,45 @@ Then press:
   - tenant -> `/dashboard/tenant`
 - Settings + sign out
 
+## EAS build setup
+
+1. Login to Expo:
+
+```bash
+npx eas-cli@latest login
+```
+
+2. Configure project linkage (first time):
+
+```bash
+npm run eas:configure
+```
+
+3. Build:
+
+```bash
+# Android internal preview (.apk/.aab)
+npm run eas:build:android:preview
+
+# Android production
+npm run eas:build:android:prod
+
+# iOS production
+npm run eas:build:ios:prod
+```
+
+4. Optional submit:
+
+```bash
+npx eas-cli@latest submit --platform android --profile production
+npx eas-cli@latest submit --platform ios --profile production
+```
+
+## Notes
+
+- Update `ios.bundleIdentifier` and `android.package` in `app.json` before publishing.
+- For live builds, set `EXPO_PUBLIC_API_BASE_URL` to your deployed backend API URL.
+
 ## Next recommended steps
 
 - Native form validation + error UX

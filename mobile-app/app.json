@@ -6,8 +6,14 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
-    "ios": { "supportsTablet": true },
-    "android": { "adaptiveIcon": { "backgroundColor": "#ffffff" } },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.propertypulse.mobile"
+    },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#ffffff" },
+      "package": "com.propertypulse.mobile"
+    },
     "extra": {
       "apiBaseUrl": "http://127.0.0.1:3001/api"
     }
