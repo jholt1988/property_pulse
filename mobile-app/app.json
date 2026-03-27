@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Property Pulse",
+    "slug": "property-pulse-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#ffffff" } },
+    "extra": {
+      "apiBaseUrl": "http://127.0.0.1:3001/api"
+    }
+  }
+}
