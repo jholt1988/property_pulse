@@ -1,5 +1,11 @@
 export type AppRole = "TENANT" | "PROPERTY_MANAGER" | "ADMIN";
 
+const normalizeRole = (role: unknown): AppRole | null => {
+  if (role === "PM") return "PROPERTY_MANAGER";
+  if (role === "TENANT" || role === "PROPERTY_MANAGER" || role === "ADMIN") return role;
+  return null;
+};
+
 function decodeJwtPayload(token: string): any | null {
   try {
     const payload = token.split(".")[1];
@@ -16,6 +22,5 @@ export function extractRoleFromToken(token?: string | null): AppRole | null {
   if (!token) return null;
   const payload = decodeJwtPayload(token);
   const role = payload?.role ?? payload?.user?.role ?? payload?.authorities?.[0];
-  if (role === "TENANT" || role === "PROPERTY_MANAGER" || role === "ADMIN") return role;
-  return null;
+  return normalizeRole(role);
 }

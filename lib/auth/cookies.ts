@@ -11,6 +11,7 @@ export function isSecureCookieRequest() {
 
 function normalizeRole(payload: Record<string, any> | null): AppRole | null {
   const role = payload?.role ?? payload?.user?.role ?? payload?.authorities?.[0];
+  if (role === "PM") return "PROPERTY_MANAGER";
   if (role === "TENANT" || role === "PROPERTY_MANAGER" || role === "ADMIN") return role;
   return null;
 }

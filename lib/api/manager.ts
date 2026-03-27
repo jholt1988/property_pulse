@@ -8,6 +8,10 @@ export async function getManagerProperties(token?: string) {
   return apiClient<any>("/properties", { method: "GET", ...(token ? { token } : {}) });
 }
 
+export async function getPropertyLocations(token?: string) {
+  return apiClient<any>("/dashboard/property-locations", { method: "GET", ...(token ? { token } : {}) });
+}
+
 export async function getManagerLeases(token?: string) {
   return apiClient<any>("/leases", { method: "GET", ...(token ? { token } : {}) });
 }
