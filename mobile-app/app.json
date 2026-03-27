@@ -5,17 +5,24 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.propertypulse.mobile"
     },
     "android": {
-      "adaptiveIcon": { "backgroundColor": "#ffffff" },
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
       "package": "com.propertypulse.mobile"
     },
     "extra": {
-      "apiBaseUrl": "http://127.0.0.1:3001/api"
+      "apiBaseUrl": "http://127.0.0.1:3001/api",
+      "eas": {
+        "projectId": "c6ab1986-a036-4567-9df3-39b7df61c215"
+      }
     }
   }
 }
