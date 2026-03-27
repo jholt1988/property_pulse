@@ -18,6 +18,7 @@ export function RoleGuard({ allowedRoles, children }: { allowedRoles: AppRole[];
   const [authorized, setAuthorized] = useState(false);
   const role = useMemo(() => {
     const roleCookie = getCookie("session_role");
+    if (roleCookie === "PM") return "PROPERTY_MANAGER" as AppRole;
     if (roleCookie && ["TENANT", "PROPERTY_MANAGER", "ADMIN"].includes(roleCookie)) return roleCookie as AppRole;
     return extractRoleFromToken(getCookie("session_token"));
   }, [pathname]);
