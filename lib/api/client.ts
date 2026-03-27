@@ -5,7 +5,7 @@ export interface ApiRequestOptions extends RequestInit {
   token?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
 
 export async function apiClient<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const { token, headers, ...rest } = options;
