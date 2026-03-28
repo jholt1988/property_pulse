@@ -46,6 +46,12 @@ cd /data/.openclaw/workspace/imported/property-pulse
 npm run dev:with-pms
 ```
 
+Optional full stack start (includes `workflow-engine` + `ml-service` profiles):
+
+```bash
+npm run dev:with-pms:full
+```
+
 Optional stop command:
 
 ```bash
