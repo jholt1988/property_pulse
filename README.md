@@ -39,7 +39,20 @@ npm run dev
 - `NEXT_PUBLIC_API_BASE_URL=/api/backend`
 - `BACKEND_API_ORIGIN=http://127.0.0.1:3001`
 
-Start backend + UI:
+Start backend + UI (one command):
+
+```bash
+cd /data/.openclaw/workspace/imported/property-pulse
+npm run dev:with-pms
+```
+
+Optional stop command:
+
+```bash
+npm run pms:stop
+```
+
+Manual (two-terminal) option:
 
 ```bash
 # terminal 1 (pms backend)

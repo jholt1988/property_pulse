@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "verify:endpoints": "node scripts/check-endpoints.mjs",
-    "test:smoke": "playwright test"
+    "test:smoke": "playwright test",
+    "dev:with-pms": "bash scripts/dev-with-pms.sh",
+    "pms:stop": "bash scripts/stop-pms.sh"
   },
   "dependencies": {
     "jose": "^6.2.2",
