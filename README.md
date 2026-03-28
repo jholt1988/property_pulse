@@ -32,6 +32,25 @@ npm install
 npm run dev
 ```
 
+## pms-master integration (default local setup)
+
+`.env.example` is preconfigured for local `pms-master` integration:
+
+- `NEXT_PUBLIC_API_BASE_URL=/api/backend`
+- `BACKEND_API_ORIGIN=http://127.0.0.1:3001`
+
+Start backend + UI:
+
+```bash
+# terminal 1 (pms backend)
+cd /data/.openclaw/workspace/pms-master
+docker compose up -d postgres redis mil backend
+
+# terminal 2 (property pulse)
+cd /data/.openclaw/workspace/imported/property-pulse
+npm run dev
+```
+
 ## Environment
 
 Set:

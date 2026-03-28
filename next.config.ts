@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
-const backendOrigin = process.env.BACKEND_API_ORIGIN;
+const backendOrigin =
+  process.env.BACKEND_API_ORIGIN ??
+  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:3001" : undefined);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
