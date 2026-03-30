@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createEstimateFromInspection, decideInspectionRequest, getInspectionEstimates, getInspectionRequests } from "@/lib/api";
 
 export default function ManagerInspectionsPage() {
@@ -11,7 +11,7 @@ export default function ManagerInspectionsPage() {
 
   const token = typeof document !== "undefined" ? document.cookie.match(/(?:^|; )session_token=([^;]+)/)?.[1] : undefined;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setError(null);
     try {
       const r = await getInspectionRequests(token);
@@ -19,9 +19,9 @@ export default function ManagerInspectionsPage() {
     } catch (e: any) {
       setError(e?.message || "Failed to load inspection requests");
     }
-  };
+  }, [token]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const decide = async (id: string | number, decision: "APPROVE" | "REJECT") => {
     try {

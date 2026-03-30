@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/lib/api";
 
 const list = (d: any) => (Array.isArray(d) ? d : d?.data || d?.items || d?.messages || d?.conversations || []);
+
+const getToken = () => (typeof document !== "undefined" ? document.cookie.match(/(?:^|; )session_token=([^;]+)/)?.[1] : undefined);
 
 export default function TenantMessagesPage() {
   const [conversations, setConversations] = useState<any[]>([]);
@@ -14,33 +16,34 @@ export default function TenantMessagesPage() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  const token = typeof document !== "undefined" ? document.cookie.match(/(?:^|; )session_token=([^;]+)/)?.[1] : undefined;
-
-  const fetchMessages = async (conversationId: number) => {
+  const fetchMessages = useCallback(async (conversationId: number) => {
+    const token = getToken();
     const d = await apiClient<any>(`/messaging/conversations/${conversationId}/messages`, { method: "GET", ...(token ? { token } : {}) });
     setMessages(list(d));
-  };
+  }, []);
+
+  const run = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = getToken();
+      const d = await apiClient<any>("/messaging/conversations", { method: "GET", ...(token ? { token } : {}) });
+      const c = list(d);
+      setConversations(c);
+      if (c[0]) {
+        setSelected(c[0]);
+        await fetchMessages(c[0].id);
+      }
+    } catch (e: any) {
+      setError(e?.message || "Failed to load conversations");
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchMessages]);
 
   useEffect(() => {
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const d = await apiClient<any>("/messaging/conversations", { method: "GET", ...(token ? { token } : {}) });
-        const c = list(d);
-        setConversations(c);
-        if (c[0]) {
-          setSelected(c[0]);
-          await fetchMessages(c[0].id);
-        }
-      } catch (e: any) {
-        setError(e?.message || "Failed to load conversations");
-      } finally {
-        setLoading(false);
-      }
-    };
     run();
-  }, []);
+  }, [run]);
 
   const title = useMemo(() => {
     if (!selected) return "Conversation";
@@ -52,6 +55,7 @@ export default function TenantMessagesPage() {
     setSending(true);
     setError(null);
     try {
+      const token = getToken();
       await apiClient("/messaging/messages", {
         method: "POST",
         ...(token ? { token } : {}),

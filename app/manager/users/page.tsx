@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createUser, deleteUser, getUsers, updateUser } from "@/lib/api";
 
 type Role = "TENANT" | "PROPERTY_MANAGER";
@@ -20,7 +20,7 @@ export default function ManagerUsersPage() {
 
   const token = typeof document !== "undefined" ? document.cookie.match(/(?:^|; )session_token=([^;]+)/)?.[1] : undefined;
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -35,9 +35,9 @@ export default function ManagerUsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [roleFilter, skip, take, token]);
 
-  useEffect(() => { fetchUsers(); }, [skip, roleFilter]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const filtered = useMemo(() => users.filter((u) => String(u.username || "").toLowerCase().includes(search.toLowerCase())), [users, search]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getMyLease, submitTenantNotice } from "@/lib/api";
 
 type Lease = {
@@ -29,7 +29,7 @@ export default function TenantLeasePage() {
 
   const token = typeof document !== "undefined" ? document.cookie.match(/(?:^|; )session_token=([^;]+)/)?.[1] : undefined;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -41,11 +41,11 @@ export default function TenantLeasePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const activeOffers = useMemo(() => (lease?.renewalOffers || []).filter((o) => o.status === "OFFERED"), [lease]);
 

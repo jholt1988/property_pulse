@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getReporting } from "@/lib/api";
 
 type ReportType = "rent-roll" | "profit-loss" | "maintenance-analytics" | "vacancy-rate" | "payment-history" | "manual-payments-summary" | "manual-charges-summary";
@@ -14,7 +14,7 @@ export default function ManagerReportingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -30,9 +30,9 @@ export default function ManagerReportingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [endDate, propertyId, startDate, type]);
 
-  useEffect(() => { load(); }, [type, startDate, endDate, propertyId]);
+  useEffect(() => { load(); }, [load]);
 
   return (
     <main className="space-y-6 p-6">

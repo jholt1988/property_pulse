@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getInspectionById, getInspectionRequests, patchRoomItems, startInspection, updateInspectionStatus, uploadInspectionItemPhoto } from "@/lib/api";
 
 type InspectionCondition = "EXCELLENT" | "GOOD" | "FAIR" | "POOR" | "DAMAGED" | "NON_FUNCTIONAL";
@@ -22,7 +22,7 @@ export default function TenantInspectionDetailPage() {
   const [draftByItemId, setDraftByItemId] = useState<Record<number, { requiresAction: boolean; notes: string; condition: InspectionCondition | "" }>>({});
   const [photoDraftByItemId, setPhotoDraftByItemId] = useState<Record<number, { url: string; caption: string }>>({});
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!Number.isFinite(inspectionId)) return;
     setLoading(true);
     setError(null);
@@ -44,9 +44,9 @@ export default function TenantInspectionDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [inspectionId, token]);
 
-  useEffect(() => { load(); }, [params.id]);
+  useEffect(() => { load(); }, [load]);
 
   const status = String(inspection?.status || "");
   const canStart = status === "SCHEDULED" && requestStatus === "APPROVED";
