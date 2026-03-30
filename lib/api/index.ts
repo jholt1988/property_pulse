@@ -8,3 +8,6 @@ export * from "./manager-admin";
 export * from "./application";
 export * from "./billing";
 export * from "./rent-optimization";
+export * from "./quickbooks";
+export * from "./documents";
+export * from "./schedule";
