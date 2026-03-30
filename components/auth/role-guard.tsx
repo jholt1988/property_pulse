@@ -24,14 +24,15 @@ export function RoleGuard({ allowedRoles, children }: { allowedRoles: AppRole[];
   }, [pathname]);
 
   useEffect(() => {
-    const token = getCookie("session_token");
-    if (!token) {
+    // session_token is httpOnly by design, so browser JS cannot read it.
+    // Use role cookie / decoded role to decide client-side gating.
+    if (!role) {
       router.replace("/login");
       return;
     }
-    setAuthorized(!!role && allowedRoles.includes(role));
+    setAuthorized(allowedRoles.includes(role));
     setChecked(true);
-  }, [allowedRoles.join(","), role, router]);
+  }, [allowedRoles, role, router]);
 
   if (!checked) return <main className="p-6">Checking access...</main>;
 

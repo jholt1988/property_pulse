@@ -53,6 +53,7 @@ export async function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get("session_token")?.value;
+  const roleCookie = req.cookies.get("session_role")?.value;
 
   if (!token) {
     const url = req.nextUrl.clone();
@@ -60,7 +61,12 @@ export async function middleware(req: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(url));
   }
 
-  const role = await extractRoleFromJwt(token);
+  const normalizedRole = roleCookie === "PM" ? "PROPERTY_MANAGER" : roleCookie;
+  const role =
+    normalizedRole === "TENANT" || normalizedRole === "PROPERTY_MANAGER" || normalizedRole === "ADMIN"
+      ? normalizedRole
+      : await extractRoleFromJwt(token);
+
   if (!role) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
