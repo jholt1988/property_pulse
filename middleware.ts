@@ -26,6 +26,22 @@ function buildCsp() {
   ].join("; ");
 }
 
+function getTokenExp(token?: string): number | null {
+  if (!token) return null;
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return null;
+    const b64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const json = atob(padded);
+    const payloadJson = JSON.parse(json);
+    const exp = Number(payloadJson?.exp || 0);
+    return Number.isFinite(exp) && exp > 0 ? exp : null;
+  } catch {
+    return null;
+  }
+}
+
 function withSecurityHeaders(res: NextResponse) {
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -61,6 +77,17 @@ export async function middleware(req: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(url));
   }
 
+  const exp = getTokenExp(token);
+  const now = Math.floor(Date.now() / 1000);
+  if (exp && exp <= now) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    const res = NextResponse.redirect(url);
+    res.cookies.delete("session_token");
+    res.cookies.delete("session_role");
+    return withSecurityHeaders(res);
+  }
+
   const normalizedRole = roleCookie === "PM" ? "PROPERTY_MANAGER" : roleCookie;
   const role =
     normalizedRole === "TENANT" || normalizedRole === "PROPERTY_MANAGER" || normalizedRole === "ADMIN"
@@ -70,7 +97,10 @@ export async function middleware(req: NextRequest) {
   if (!role) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
-    return withSecurityHeaders(NextResponse.redirect(url));
+    const res = NextResponse.redirect(url);
+    res.cookies.delete("session_token");
+    res.cookies.delete("session_role");
+    return withSecurityHeaders(res);
   }
 
   if (pathname.startsWith("/manager") && role !== "PROPERTY_MANAGER" && role !== "ADMIN") {

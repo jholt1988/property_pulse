@@ -10,6 +10,21 @@ function normalizeRole(raw: unknown): AppRole | null {
   return null;
 }
 
+function getTokenMaxAgeSeconds(token: string): number {
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return 60 * 60;
+    const payloadJson = JSON.parse(Buffer.from(payloadPart, "base64url").toString("utf8"));
+    const exp = Number(payloadJson?.exp || 0);
+    const now = Math.floor(Date.now() / 1000);
+    if (!exp || exp <= now) return 60;
+    // keep a tiny safety buffer
+    return Math.max(60, exp - now - 15);
+  } catch {
+    return 60 * 60;
+  }
+}
+
 async function resolveRoleFromBackend(token: string): Promise<AppRole | null> {
   const backendOrigin =
     process.env.BACKEND_API_ORIGIN ??
@@ -47,6 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     const res = NextResponse.json({ ok: true, role });
+    const maxAge = getTokenMaxAgeSeconds(token);
 
     res.cookies.set({
       name: SESSION_TOKEN_COOKIE,
@@ -55,7 +71,7 @@ export async function POST(req: NextRequest) {
       secure: isSecureCookieRequest(),
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 8,
+      maxAge,
     });
 
     res.cookies.set({
@@ -65,7 +81,7 @@ export async function POST(req: NextRequest) {
       secure: isSecureCookieRequest(),
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 8,
+      maxAge,
     });
 
     return res;
