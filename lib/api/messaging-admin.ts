@@ -22,3 +22,11 @@ export async function createBulkCampaign(payload: any, token?: string) {
     ...(token ? { token } : {}),
   });
 }
+
+export async function previewBulkCampaign(payload: any, token?: string) {
+  return apiClient<any>("/messaging/bulk/preview", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    ...(token ? { token } : {}),
+  });
+}

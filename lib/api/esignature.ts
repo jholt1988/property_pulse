@@ -27,3 +27,11 @@ export async function voidEnvelope(envelopeId: string, payload: any, token?: str
     ...(token ? { token } : {}),
   });
 }
+
+export async function getRecipientView(envelopeId: string, payload: any, token?: string) {
+  return apiClient<any>(`/api/esignature/envelopes/${envelopeId}/recipient-view`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    ...(token ? { token } : {}),
+  });
+}
