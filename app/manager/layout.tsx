@@ -15,6 +15,9 @@ const navItems = [
   { label: "QuickBooks", href: "/manager/quickbooks", module: "finance" as const },
   { label: "Documents", href: "/manager/documents", module: "properties" as const },
   { label: "Schedule", href: "/manager/schedule", module: "core" as const },
+  { label: "E-sign", href: "/manager/esignature", module: "lease" as const },
+  { label: "Msg Admin", href: "/manager/messaging", module: "tenants" as const },
+  { label: "Inspections", href: "/manager/inspections", module: "inspect" as const },
   { label: "Audit", href: "/manager/audit", module: "ai" as const },
 ];
 
