@@ -10,6 +10,8 @@ const navItems = [
   { label: "Applications", href: "/manager/applications", module: "tenants" as const },
   { label: "Reporting", href: "/manager/reporting", module: "finance" as const },
   { label: "Users", href: "/manager/users", module: "tenants" as const },
+  { label: "Billing Ops", href: "/manager/billing", module: "finance" as const },
+  { label: "Rent AI", href: "/manager/rent-optimization", module: "ai" as const },
   { label: "Audit", href: "/manager/audit", module: "ai" as const },
 ];
 

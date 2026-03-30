@@ -6,3 +6,5 @@ export * from "./inspections";
 export * from "./manager";
 export * from "./manager-admin";
 export * from "./application";
+export * from "./billing";
+export * from "./rent-optimization";
