@@ -63,10 +63,23 @@ export default function LeasingOpsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const groupedIds = useMemo(
+    () => ((data?.bulkActions?.[selectedAction] || []) as Array<string | number>),
+    [data, selectedAction],
+  );
+
   const idsForAction = useMemo(() => {
-    const grouped = (data?.bulkActions?.[selectedAction] || []) as Array<string | number>;
-    return manualIds.length > 0 ? manualIds : grouped;
-  }, [data, selectedAction, manualIds]);
+    return manualIds.length > 0 ? manualIds : groupedIds;
+  }, [groupedIds, manualIds]);
+
+  const diffPreview = useMemo(() => {
+    const groupedSet = new Set(groupedIds.map(String));
+    const manualSet = new Set(manualIds.map(String));
+    return {
+      added: [...manualSet].filter((id) => !groupedSet.has(id)),
+      removed: [...groupedSet].filter((id) => !manualSet.has(id)),
+    };
+  }, [groupedIds, manualIds]);
 
   const filteredHistory = useMemo(() => {
     const ranged = filterHistoryByRange(runHistory, historyRange);
@@ -176,7 +189,27 @@ export default function LeasingOpsPage() {
           </button>
           <span className="self-center text-xs text-gray-500">High-impact actions require simulate token.</span>
         </div>
-        {manualIds.length > 0 && <p className="text-xs text-amber-700">Using manual IDs from failed run ({manualIds.length}). Change action to reset.</p>}
+        {manualIds.length > 0 && (
+          <div className="space-y-1 text-xs text-amber-700">
+            <p>Using manual IDs from failed run ({manualIds.length}). Change action to reset.</p>
+            <p>Diff vs current group: +{diffPreview.added.length} / -{diffPreview.removed.length}</p>
+            {(diffPreview.added.length > 0 || diffPreview.removed.length > 0) && (
+              <details>
+                <summary className="cursor-pointer">View ID diff</summary>
+                <div className="mt-1 grid gap-2 md:grid-cols-2">
+                  <div>
+                    <p className="font-medium text-green-700">Added in manual set</p>
+                    <p className="break-all">{diffPreview.added.join(", ") || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-red-700">Missing from manual set</p>
+                    <p className="break-all">{diffPreview.removed.join(", ") || "-"}</p>
+                  </div>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
         {token && <p className="text-xs text-gray-600">Simulation token ready for confirm flow.</p>}
       </section>
 

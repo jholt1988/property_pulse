@@ -83,10 +83,24 @@ export default function PaymentsOpsPage() {
     } catch {}
   }, []);
 
+  const groupedIds = useMemo(
+    () => ((data?.bulkActions?.[action] || []) as Array<string | number>),
+    [data, action],
+  );
+
   const ids = useMemo(() => {
-    const grouped = (data?.bulkActions?.[action] || []) as Array<string | number>;
-    return manualIds.length > 0 ? manualIds : grouped;
-  }, [data, action, manualIds]);
+    return manualIds.length > 0 ? manualIds : groupedIds;
+  }, [groupedIds, manualIds]);
+
+  const diffPreview = useMemo(() => {
+    const groupedSet = new Set(groupedIds.map(String));
+    const manualSet = new Set(manualIds.map(String));
+    return {
+      added: [...manualSet].filter((id) => !groupedSet.has(id)),
+      removed: [...groupedSet].filter((id) => !manualSet.has(id)),
+    };
+  }, [groupedIds, manualIds]);
+
   const filteredHistory = useMemo(() => {
     const ranged = filterHistoryByRange(runHistory, historyRange);
     return failedOnly ? ranged.filter((r) => Number(r.failed || 0) > 0) : ranged;
@@ -167,7 +181,27 @@ export default function PaymentsOpsPage() {
             Reuse Last Failed Run
           </button>
         </div>
-        {manualIds.length > 0 && <p className="text-xs text-amber-700">Using manual IDs from failed run ({manualIds.length}). Change action to reset.</p>}
+        {manualIds.length > 0 && (
+          <div className="space-y-1 text-xs text-amber-700">
+            <p>Using manual IDs from failed run ({manualIds.length}). Change action to reset.</p>
+            <p>Diff vs current group: +{diffPreview.added.length} / -{diffPreview.removed.length}</p>
+            {(diffPreview.added.length > 0 || diffPreview.removed.length > 0) && (
+              <details>
+                <summary className="cursor-pointer">View ID diff</summary>
+                <div className="mt-1 grid gap-2 md:grid-cols-2">
+                  <div>
+                    <p className="font-medium text-green-700">Added in manual set</p>
+                    <p className="break-all">{diffPreview.added.join(", ") || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-red-700">Missing from manual set</p>
+                    <p className="break-all">{diffPreview.removed.join(", ") || "-"}</p>
+                  </div>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
