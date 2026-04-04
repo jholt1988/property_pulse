@@ -19,6 +19,7 @@ export default function LeasingOpsPage() {
   const [result, setResult] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [runHistory, setRunHistory] = useState<any[]>([]);
 
   const refresh = async (nextLimit = limit) => {
     setLoading(true);
@@ -36,6 +37,10 @@ export default function LeasingOpsPage() {
 
   useEffect(() => {
     refresh();
+    try {
+      const raw = localStorage.getItem("leasingOpsRunHistory");
+      if (raw) setRunHistory(JSON.parse(raw));
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -68,6 +73,20 @@ export default function LeasingOpsPage() {
 
       const res = await executeLeasingBulkAction(payload, session);
       setResult(res);
+      const entry = {
+        at: new Date().toISOString(),
+        action: selectedAction,
+        simulate,
+        confirm,
+        requested: res?.requested ?? idsForAction.length,
+        succeeded: res?.succeeded ?? 0,
+        failed: res?.failed ?? 0,
+      };
+      setRunHistory((prev) => {
+        const next = [entry, ...prev].slice(0, 50);
+        try { localStorage.setItem("leasingOpsRunHistory", JSON.stringify(next)); } catch {}
+        return next;
+      });
       if (simulate && res?.simulationToken) setToken(res.simulationToken);
       if (!simulate) await refresh();
     } catch (e: any) {
@@ -130,6 +149,42 @@ export default function LeasingOpsPage() {
       <section className="rounded border p-4">
         <h2 className="font-medium">Bulk Result</h2>
         <pre className="mt-2 max-h-[26rem] overflow-auto text-xs">{JSON.stringify(result, null, 2)}</pre>
+      </section>
+
+      <section className="rounded border p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-medium">Ops Run History</h2>
+          <button
+            className="rounded border px-2 py-1 text-xs"
+            onClick={() => {
+              setRunHistory([]);
+              try { localStorage.removeItem("leasingOpsRunHistory"); } catch {}
+            }}
+          >
+            Clear
+          </button>
+        </div>
+        {runHistory.length === 0 ? (
+          <p className="text-sm text-gray-500">No runs yet.</p>
+        ) : (
+          <div className="overflow-auto">
+            <table className="min-w-full text-left text-xs">
+              <thead><tr className="border-b"><th className="p-2">Time</th><th className="p-2">Action</th><th className="p-2">Mode</th><th className="p-2">Requested</th><th className="p-2">Succeeded</th><th className="p-2">Failed</th></tr></thead>
+              <tbody>
+                {runHistory.map((r, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="p-2">{new Date(r.at).toLocaleString()}</td>
+                    <td className="p-2">{r.action}</td>
+                    <td className="p-2">{r.simulate ? "SIMULATE" : r.confirm ? "CONFIRMED" : "RUN"}</td>
+                    <td className="p-2">{r.requested}</td>
+                    <td className="p-2">{r.succeeded}</td>
+                    <td className="p-2">{r.failed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </main>
   );

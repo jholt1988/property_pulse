@@ -16,6 +16,7 @@ export default function PaymentsOpsPage() {
   const [token, setToken] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [runHistory, setRunHistory] = useState<any[]>([]);
 
   const refresh = async () => {
     setLoading(true);
@@ -32,6 +33,10 @@ export default function PaymentsOpsPage() {
 
   useEffect(() => {
     refresh();
+    try {
+      const raw = localStorage.getItem("paymentsOpsRunHistory");
+      if (raw) setRunHistory(JSON.parse(raw));
+    } catch {}
   }, []);
 
   const ids = useMemo(() => (data?.bulkActions?.[action] || []) as Array<string | number>, [data, action]);
@@ -44,6 +49,20 @@ export default function PaymentsOpsPage() {
       if (confirm && token) payload.simulationToken = token;
       const res = await executePaymentsBulkAction(payload, tokenFromCookie());
       setResult(res);
+      const entry = {
+        at: new Date().toISOString(),
+        action,
+        simulate,
+        confirm,
+        requested: res?.requested ?? ids.length,
+        succeeded: res?.succeeded ?? 0,
+        failed: res?.failed ?? 0,
+      };
+      setRunHistory((prev) => {
+        const next = [entry, ...prev].slice(0, 50);
+        try { localStorage.setItem("paymentsOpsRunHistory", JSON.stringify(next)); } catch {}
+        return next;
+      });
       if (simulate && res?.simulationToken) setToken(res.simulationToken);
       if (!simulate) refresh();
     } catch (e: any) {
@@ -99,6 +118,42 @@ export default function PaymentsOpsPage() {
       <section className="rounded border p-4">
         <h3 className="mb-2 font-medium">Bulk Result</h3>
         <pre className="max-h-[24rem] overflow-auto text-xs">{JSON.stringify(result, null, 2)}</pre>
+      </section>
+
+      <section className="rounded border p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="font-medium">Ops Run History</h3>
+          <button
+            className="rounded border px-2 py-1 text-xs"
+            onClick={() => {
+              setRunHistory([]);
+              try { localStorage.removeItem("paymentsOpsRunHistory"); } catch {}
+            }}
+          >
+            Clear
+          </button>
+        </div>
+        {runHistory.length === 0 ? (
+          <p className="text-sm text-gray-500">No runs yet.</p>
+        ) : (
+          <div className="overflow-auto">
+            <table className="min-w-full text-left text-xs">
+              <thead><tr className="border-b"><th className="p-2">Time</th><th className="p-2">Action</th><th className="p-2">Mode</th><th className="p-2">Requested</th><th className="p-2">Succeeded</th><th className="p-2">Failed</th></tr></thead>
+              <tbody>
+                {runHistory.map((r, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="p-2">{new Date(r.at).toLocaleString()}</td>
+                    <td className="p-2">{r.action}</td>
+                    <td className="p-2">{r.simulate ? "SIMULATE" : r.confirm ? "CONFIRMED" : "RUN"}</td>
+                    <td className="p-2">{r.requested}</td>
+                    <td className="p-2">{r.succeeded}</td>
+                    <td className="p-2">{r.failed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </main>
   );
