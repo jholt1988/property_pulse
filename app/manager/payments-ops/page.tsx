@@ -54,6 +54,7 @@ export default function PaymentsOpsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<"SEND_PAYMENT_REMINDER" | "RETRY_FAILED_PAYMENT">("SEND_PAYMENT_REMINDER");
+  const [manualIds, setManualIds] = useState<Array<string | number>>([]);
   const [token, setToken] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -82,7 +83,10 @@ export default function PaymentsOpsPage() {
     } catch {}
   }, []);
 
-  const ids = useMemo(() => (data?.bulkActions?.[action] || []) as Array<string | number>, [data, action]);
+  const ids = useMemo(() => {
+    const grouped = (data?.bulkActions?.[action] || []) as Array<string | number>;
+    return manualIds.length > 0 ? manualIds : grouped;
+  }, [data, action, manualIds]);
   const filteredHistory = useMemo(() => {
     const ranged = filterHistoryByRange(runHistory, historyRange);
     return failedOnly ? ranged.filter((r) => Number(r.failed || 0) > 0) : ranged;
@@ -99,6 +103,7 @@ export default function PaymentsOpsPage() {
       const entry = {
         at: new Date().toISOString(),
         action,
+        ids,
         simulate,
         confirm,
         requested: res?.requested ?? ids.length,
@@ -139,7 +144,7 @@ export default function PaymentsOpsPage() {
         <h2 className="font-medium">Bulk Actions</h2>
         <div className="flex items-center gap-2 text-sm">
           <label>Action</label>
-          <select className="rounded border px-2 py-1" value={action} onChange={(e) => setAction(e.target.value as any)}>
+          <select className="rounded border px-2 py-1" value={action} onChange={(e) => { setAction(e.target.value as any); setManualIds([]); }}>
             <option value="SEND_PAYMENT_REMINDER">SEND_PAYMENT_REMINDER</option>
             <option value="RETRY_FAILED_PAYMENT">RETRY_FAILED_PAYMENT</option>
           </select>
@@ -148,7 +153,21 @@ export default function PaymentsOpsPage() {
         <div className="flex gap-2">
           <button className="rounded border px-3 py-1 text-sm disabled:opacity-60" disabled={busy || ids.length === 0} onClick={() => run(true, false)}>Simulate</button>
           <button className="rounded bg-black px-3 py-1 text-sm text-white disabled:opacity-60" disabled={busy || ids.length === 0} onClick={() => run(false, true)}>Execute Confirmed</button>
+          <button
+            className="rounded border px-3 py-1 text-sm"
+            onClick={() => {
+              const lastFailed = filteredHistory.find((r) => Number(r.failed || 0) > 0 && Array.isArray(r.ids) && r.ids.length > 0);
+              if (lastFailed) {
+                setAction(lastFailed.action as any);
+                setManualIds(lastFailed.ids);
+              }
+            }}
+            disabled={filteredHistory.length === 0}
+          >
+            Reuse Last Failed Run
+          </button>
         </div>
+        {manualIds.length > 0 && <p className="text-xs text-amber-700">Using manual IDs from failed run ({manualIds.length}). Change action to reset.</p>}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">

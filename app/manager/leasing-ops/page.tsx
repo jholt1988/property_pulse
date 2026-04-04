@@ -32,6 +32,7 @@ export default function LeasingOpsPage() {
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState(25);
   const [selectedAction, setSelectedAction] = useState<BulkActionType>("FOLLOW_UP_APPLICANT");
+  const [manualIds, setManualIds] = useState<Array<string | number>>([]);
   const [result, setResult] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,8 +64,9 @@ export default function LeasingOpsPage() {
   }, []);
 
   const idsForAction = useMemo(() => {
-    return (data?.bulkActions?.[selectedAction] || []) as Array<string | number>;
-  }, [data, selectedAction]);
+    const grouped = (data?.bulkActions?.[selectedAction] || []) as Array<string | number>;
+    return manualIds.length > 0 ? manualIds : grouped;
+  }, [data, selectedAction, manualIds]);
 
   const filteredHistory = useMemo(() => {
     const ranged = filterHistoryByRange(runHistory, historyRange);
@@ -99,6 +101,7 @@ export default function LeasingOpsPage() {
       const entry = {
         at: new Date().toISOString(),
         action: selectedAction,
+        ids: idsForAction,
         simulate,
         confirm,
         requested: res?.requested ?? idsForAction.length,
@@ -147,7 +150,7 @@ export default function LeasingOpsPage() {
         <h2 className="font-medium">Bulk Execution</h2>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <label>Action</label>
-          <select className="rounded border px-2 py-1" value={selectedAction} onChange={(e) => setSelectedAction(e.target.value as BulkActionType)}>
+          <select className="rounded border px-2 py-1" value={selectedAction} onChange={(e) => { setSelectedAction(e.target.value as BulkActionType); setManualIds([]); }}>
             <option value="FOLLOW_UP_APPLICANT">FOLLOW_UP_APPLICANT</option>
             <option value="SEND_SIGNATURE_REMINDER">SEND_SIGNATURE_REMINDER</option>
             <option value="RETRY_SEND_ENVELOPE">RETRY_SEND_ENVELOPE</option>
@@ -158,8 +161,22 @@ export default function LeasingOpsPage() {
         <div className="flex flex-wrap gap-2">
           <button disabled={busy || idsForAction.length === 0} className="rounded border px-3 py-1 text-sm disabled:opacity-60" onClick={() => runBulk(true, false)}>Simulate</button>
           <button disabled={busy || idsForAction.length === 0} className="rounded bg-black px-3 py-1 text-sm text-white disabled:opacity-60" onClick={() => runBulk(false, true)}>Execute Confirmed</button>
+          <button
+            className="rounded border px-3 py-1 text-sm"
+            onClick={() => {
+              const lastFailed = filteredHistory.find((r) => Number(r.failed || 0) > 0 && Array.isArray(r.ids) && r.ids.length > 0);
+              if (lastFailed) {
+                setSelectedAction(lastFailed.action as BulkActionType);
+                setManualIds(lastFailed.ids);
+              }
+            }}
+            disabled={filteredHistory.length === 0}
+          >
+            Reuse Last Failed Run
+          </button>
           <span className="self-center text-xs text-gray-500">High-impact actions require simulate token.</span>
         </div>
+        {manualIds.length > 0 && <p className="text-xs text-amber-700">Using manual IDs from failed run ({manualIds.length}). Change action to reset.</p>}
         {token && <p className="text-xs text-gray-600">Simulation token ready for confirm flow.</p>}
       </section>
 
