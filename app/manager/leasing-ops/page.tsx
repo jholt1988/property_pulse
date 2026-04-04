@@ -154,15 +154,24 @@ export default function LeasingOpsPage() {
       <section className="rounded border p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-medium">Ops Run History</h2>
-          <button
-            className="rounded border px-2 py-1 text-xs"
-            onClick={() => {
-              setRunHistory([]);
-              try { localStorage.removeItem("leasingOpsRunHistory"); } catch {}
-            }}
-          >
-            Clear
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="rounded border px-2 py-1 text-xs"
+              onClick={() => downloadHistoryCsv(`leasing-ops-history-${new Date().toISOString().slice(0, 10)}.csv`, runHistory)}
+              disabled={runHistory.length === 0}
+            >
+              Export CSV
+            </button>
+            <button
+              className="rounded border px-2 py-1 text-xs"
+              onClick={() => {
+                setRunHistory([]);
+                try { localStorage.removeItem("leasingOpsRunHistory"); } catch {}
+              }}
+            >
+              Clear
+            </button>
+          </div>
         </div>
         {runHistory.length === 0 ? (
           <p className="text-sm text-gray-500">No runs yet.</p>
@@ -188,6 +197,31 @@ export default function LeasingOpsPage() {
       </section>
     </main>
   );
+}
+
+function downloadHistoryCsv(filename: string, rows: Array<{ at: string; action: string; simulate: boolean; confirm: boolean; requested: number; succeeded: number; failed: number }>) {
+  const header = ["time", "action", "mode", "requested", "succeeded", "failed"];
+  const lines = rows.map((r) => [
+    new Date(r.at).toISOString(),
+    r.action,
+    r.simulate ? "SIMULATE" : r.confirm ? "CONFIRMED" : "RUN",
+    String(r.requested),
+    String(r.succeeded),
+    String(r.failed),
+  ]);
+  const csv = [header, ...lines]
+    .map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function Panel({ title, rows }: { title: string; rows: Row[] }) {
