@@ -72,3 +72,27 @@ export async function submitTenantNotice(
     ...(token ? { token } : {}),
   });
 }
+
+export async function getPaymentsOpsSummary(limit = 25, token?: string) {
+  return apiClient<any>(`/payments/ops-summary?limit=${encodeURIComponent(String(limit))}`, {
+    method: "GET",
+    ...(token ? { token } : {}),
+  });
+}
+
+export async function executePaymentsBulkAction(
+  payload: {
+    action: "SEND_PAYMENT_REMINDER" | "RETRY_FAILED_PAYMENT";
+    ids: Array<string | number>;
+    simulate?: boolean;
+    confirm?: boolean;
+    simulationToken?: string;
+  },
+  token?: string,
+) {
+  return apiClient<any>(`/payments/ops-summary/bulk-action`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    ...(token ? { token } : {}),
+  });
+}

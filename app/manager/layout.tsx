@@ -12,6 +12,7 @@ const navItems = [
   { label: "Reporting", href: "/manager/reporting", module: "finance" as const },
   { label: "Users", href: "/manager/users", module: "tenants" as const },
   { label: "Billing Ops", href: "/manager/billing", module: "finance" as const },
+  { label: "Payments Ops", href: "/manager/payments-ops", module: "finance" as const },
   { label: "Rent AI", href: "/manager/rent-optimization", module: "ai" as const },
   { label: "QuickBooks", href: "/manager/quickbooks", module: "finance" as const },
   { label: "Documents", href: "/manager/documents", module: "properties" as const },
