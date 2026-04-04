@@ -13,4 +13,10 @@ export * from "./documents";
 export * from "./schedule";
 export * from "./esignature";
 export * from "./messaging-admin";
-export * from "./inspection-manager";
+export {
+  getInspectionRequests as getManagerInspectionRequests,
+  decideInspectionRequest,
+  createEstimateFromInspection,
+  getInspectionEstimates,
+} from "./inspection-manager";
+export * from "./leasing";

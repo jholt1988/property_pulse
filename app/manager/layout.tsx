@@ -8,6 +8,7 @@ const navItems = [
   { label: "Properties", href: "/manager/properties", module: "properties" as const },
   { label: "Leases", href: "/manager/leases", module: "lease" as const },
   { label: "Applications", href: "/manager/applications", module: "tenants" as const },
+  { label: "Leasing Ops", href: "/manager/leasing-ops", module: "lease" as const },
   { label: "Reporting", href: "/manager/reporting", module: "finance" as const },
   { label: "Users", href: "/manager/users", module: "tenants" as const },
   { label: "Billing Ops", href: "/manager/billing", module: "finance" as const },
