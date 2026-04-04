@@ -33,6 +33,22 @@ function downloadHistoryCsv(filename: string, rows: Array<{ at: string; action: 
   URL.revokeObjectURL(url);
 }
 
+type HistoryRange = "today" | "7d" | "30d" | "all";
+
+const filterHistoryByRange = (rows: any[], range: HistoryRange) => {
+  if (range === "all") return rows;
+  const now = new Date();
+  const start = new Date(now);
+  if (range === "today") {
+    start.setHours(0, 0, 0, 0);
+  } else if (range === "7d") {
+    start.setDate(start.getDate() - 7);
+  } else if (range === "30d") {
+    start.setDate(start.getDate() - 30);
+  }
+  return rows.filter((r) => new Date(r.at).getTime() >= start.getTime());
+};
+
 export default function PaymentsOpsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +58,7 @@ export default function PaymentsOpsPage() {
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [runHistory, setRunHistory] = useState<any[]>([]);
+  const [historyRange, setHistoryRange] = useState<HistoryRange>("7d");
 
   const refresh = async () => {
     setLoading(true);
@@ -65,6 +82,7 @@ export default function PaymentsOpsPage() {
   }, []);
 
   const ids = useMemo(() => (data?.bulkActions?.[action] || []) as Array<string | number>, [data, action]);
+  const filteredHistory = useMemo(() => filterHistoryByRange(runHistory, historyRange), [runHistory, historyRange]);
 
   const run = async (simulate: boolean, confirm: boolean) => {
     setBusy(true);
@@ -149,10 +167,16 @@ export default function PaymentsOpsPage() {
         <div className="mb-2 flex items-center justify-between">
           <h3 className="font-medium">Ops Run History</h3>
           <div className="flex gap-2">
+            <select className="rounded border px-2 py-1 text-xs" value={historyRange} onChange={(e) => setHistoryRange(e.target.value as HistoryRange)}>
+              <option value="today">Today</option>
+              <option value="7d">Last 7d</option>
+              <option value="30d">Last 30d</option>
+              <option value="all">All</option>
+            </select>
             <button
               className="rounded border px-2 py-1 text-xs"
-              onClick={() => downloadHistoryCsv(`payments-ops-history-${new Date().toISOString().slice(0, 10)}.csv`, runHistory)}
-              disabled={runHistory.length === 0}
+              onClick={() => downloadHistoryCsv(`payments-ops-history-${historyRange}-${new Date().toISOString().slice(0, 10)}.csv`, filteredHistory)}
+              disabled={filteredHistory.length === 0}
             >
               Export CSV
             </button>
@@ -167,14 +191,14 @@ export default function PaymentsOpsPage() {
             </button>
           </div>
         </div>
-        {runHistory.length === 0 ? (
+        {filteredHistory.length === 0 ? (
           <p className="text-sm text-gray-500">No runs yet.</p>
         ) : (
           <div className="overflow-auto">
             <table className="min-w-full text-left text-xs">
               <thead><tr className="border-b"><th className="p-2">Time</th><th className="p-2">Action</th><th className="p-2">Mode</th><th className="p-2">Requested</th><th className="p-2">Succeeded</th><th className="p-2">Failed</th></tr></thead>
               <tbody>
-                {runHistory.map((r, i) => (
+                {filteredHistory.map((r, i) => (
                   <tr key={i} className="border-b">
                     <td className="p-2">{new Date(r.at).toLocaleString()}</td>
                     <td className="p-2">{r.action}</td>
