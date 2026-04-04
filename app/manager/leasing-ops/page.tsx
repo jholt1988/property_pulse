@@ -37,6 +37,7 @@ export default function LeasingOpsPage() {
   const [busy, setBusy] = useState(false);
   const [runHistory, setRunHistory] = useState<any[]>([]);
   const [historyRange, setHistoryRange] = useState<HistoryRange>("7d");
+  const [failedOnly, setFailedOnly] = useState(false);
 
   const refresh = async (nextLimit = limit) => {
     setLoading(true);
@@ -65,7 +66,10 @@ export default function LeasingOpsPage() {
     return (data?.bulkActions?.[selectedAction] || []) as Array<string | number>;
   }, [data, selectedAction]);
 
-  const filteredHistory = useMemo(() => filterHistoryByRange(runHistory, historyRange), [runHistory, historyRange]);
+  const filteredHistory = useMemo(() => {
+    const ranged = filterHistoryByRange(runHistory, historyRange);
+    return failedOnly ? ranged.filter((r) => Number(r.failed || 0) > 0) : ranged;
+  }, [runHistory, historyRange, failedOnly]);
 
   const runBulk = async (simulate: boolean, confirm: boolean) => {
     setBusy(true);
@@ -180,6 +184,10 @@ export default function LeasingOpsPage() {
               <option value="30d">Last 30d</option>
               <option value="all">All</option>
             </select>
+            <label className="flex items-center gap-1 text-xs text-gray-600">
+              <input type="checkbox" checked={failedOnly} onChange={(e) => setFailedOnly(e.target.checked)} />
+              Failed only
+            </label>
             <button
               className="rounded border px-2 py-1 text-xs"
               onClick={() => downloadHistoryCsv(`leasing-ops-history-${historyRange}-${new Date().toISOString().slice(0, 10)}.csv`, filteredHistory)}
