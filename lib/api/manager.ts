@@ -16,6 +16,14 @@ export async function getActionIntents(token?: string) {
   return apiClient<any>("/dashboard/action-intents", { method: "GET", ...(token ? { token } : {}) });
 }
 
+export async function resolveActionIntent(id: string, action: string, token?: string) {
+  return apiClient<any>(`/dashboard/action-intents/${id}/resolve`, { 
+    method: "PATCH", 
+    body: { action },
+    ...(token ? { token } : {}) 
+  });
+}
+
 export async function getManagerLeases(token?: string) {
   return apiClient<any>("/leases", { method: "GET", ...(token ? { token } : {}) });
 }
