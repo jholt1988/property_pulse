@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getActionIntents, getDashboardMetrics, getPropertyLocations, resolveActionIntent } from "@/lib/api";
+import { PortfolioHeatmap } from "./components/portfolio-heatmap";
+import { getActionIntents, getDashboardMetrics, getOpexAnomalies, getPortfolioHeatmap, getPropertyLocations, resolveActionIntent, type OpexAnomaly, type PortfolioHeatmapRow } from "@/lib/api";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
 
@@ -56,6 +57,8 @@ export default function ManagerDashboardPage() {
   const [data, setData] = useState<any>(null);
   const [propertyLocations, setPropertyLocations] = useState<PropertyLocationsResponse | null>(null);
   const [actionIntents, setActionIntents] = useState<ActionIntent[]>([]);
+  const [heatmap, setHeatmap] = useState<PortfolioHeatmapRow[]>([]);
+  const [opexAnomalies, setOpexAnomalies] = useState<OpexAnomaly[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,9 +73,15 @@ export default function ManagerDashboardPage() {
           getPropertyLocations(token),
           getActionIntents(token),
         ]);
+        const [heatmapData, anomalyData] = await Promise.all([
+          getPortfolioHeatmap(token),
+          getOpexAnomalies(token),
+        ]);
         setData(d);
         setPropertyLocations(locations);
         setActionIntents(Array.isArray(intents?.intents) ? intents.intents : []);
+        setHeatmap(Array.isArray(heatmapData) ? heatmapData : []);
+        setOpexAnomalies(Array.isArray(anomalyData) ? anomalyData : []);
       } catch (e: any) {
         setError(e?.message || "Failed to load dashboard metrics");
       } finally {
@@ -149,6 +158,44 @@ export default function ManagerDashboardPage() {
         )}
       </section>
 
+      <section className="grid gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <PortfolioHeatmap rows={heatmap} loading={loading} />
+        </div>
+        <section className="rounded border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-500">OPEX Anomalies</p>
+              <p className="text-lg font-semibold">Current month deviations</p>
+            </div>
+            <p className="text-xs text-gray-600">{opexAnomalies.length} flagged</p>
+          </div>
+
+          {opexAnomalies.length > 0 ? (
+            <ul className="space-y-2">
+              {opexAnomalies.slice(0, 5).map((anomaly) => (
+                <li key={`${anomaly.propertyId}-${anomaly.propertyName}`} className="rounded border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">{anomaly.propertyName}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Avg {fmt(anomaly.trailingMonthlyAvg)} vs now {fmt(anomaly.currentMonthTotal)}
+                      </p>
+                    </div>
+                    <div className={`text-sm font-medium ${anomaly.direction === "ABOVE" ? "text-red-600" : "text-amber-700"}`}>
+                      {anomaly.direction === "ABOVE" ? "+" : ""}
+                      {anomaly.deviationPercent}%
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500">No significant OPEX anomalies detected.</p>
+          )}
+        </section>
+      </section>
+
       <section className="rounded border p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -160,7 +207,7 @@ export default function ManagerDashboardPage() {
 
         {actionIntents.length > 0 ? (
           <ul className="space-y-2">
-            {actionIntents.slice(0, 5).map((intent) => (
+            {actionIntents.slice(0, 8).map((intent) => (
               <li key={intent.id} className="rounded border p-3 flex flex-col sm:flex-row justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -218,6 +265,28 @@ export default function ManagerDashboardPage() {
                     </div>
                   )}
 
+                  {intent.type === 'URGENT_MESSAGE_RECEIVED' && intent.raw && (
+                    <div className="mt-3 bg-red-50/50 rounded-md p-3 border border-red-200">
+                      <p className="text-[11px] font-semibold text-red-800 uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <svg className="w-3 h-3 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        Sentiment Analysis Trigger ({intent.raw.sentiment})
+                      </p>
+                      <div className="text-sm text-slate-700 italic border-l-2 border-red-300 pl-3 py-1 my-2 bg-white/60">
+                        &quot;{intent.raw.content}&quot;
+                      </div>
+                      <div className="mt-2 bg-white rounded-md p-3 border border-slate-100 shadow-sm relative group overflow-hidden">
+                        <div className="absolute top-0 right-0 p-1 opacity-100">
+                           <span className="text-[9px] uppercase tracking-widest font-bold text-indigo-400/80 bg-indigo-50/50 px-2 py-0.5 rounded-bl-md border-b border-l border-indigo-100/50">AI DAWN Copilot</span>
+                        </div>
+                        <p className="text-[10px] text-indigo-600/70 font-semibold uppercase tracking-wide mb-1 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                          Drafted Response
+                        </p>
+                        <p className="text-xs text-slate-600 relative z-10 leading-relaxed pr-2 pt-1">{intent.raw.aiDraft}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {intent.type === 'CAPITAL_ALLOCATION_INTENT' && intent.raw && (
                     <div className="mt-3 bg-slate-50/50 rounded-md p-3 border border-slate-200">
                       <p className="text-[11px] font-semibold text-slate-800 uppercase tracking-wide mb-2 flex items-center gap-1">
@@ -259,7 +328,13 @@ export default function ManagerDashboardPage() {
                         <button onClick={() => handleResolveIntent(intent.id, "DISMISSED")} className="text-xs bg-gray-50 text-gray-600 border px-3 py-1.5 rounded hover:bg-gray-100 transition-colors">Ignore</button>
                      </>
                   )}
-                  {intent.type !== "QUICKBOOKS_ANOMALY" && intent.type !== "AI_ABSTRACTION_REVIEW" && intent.type !== "RENEWAL_PRICING_GENERATED" && intent.type !== "CAPITAL_ALLOCATION_INTENT" && (
+                  {intent.type === "URGENT_MESSAGE_RECEIVED" && (
+                     <>
+                        <button onClick={() => handleResolveIntent(intent.id, "RESOLVED")} className="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-medium flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg> Send AI Draft</button>
+                        <button onClick={() => handleResolveIntent(intent.id, "DISMISSED")} className="text-xs bg-gray-50 text-gray-600 border px-3 py-1.5 rounded hover:bg-gray-100 transition-colors">Review Manually</button>
+                     </>
+                  )}
+                  {intent.type !== "QUICKBOOKS_ANOMALY" && intent.type !== "AI_ABSTRACTION_REVIEW" && intent.type !== "RENEWAL_PRICING_GENERATED" && intent.type !== "CAPITAL_ALLOCATION_INTENT" && intent.type !== "URGENT_MESSAGE_RECEIVED" && (
                     <button onClick={() => handleResolveIntent(intent.id, "RESOLVED")} className="text-xs bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800 transition-colors">Resolve</button>
                   )}
                 </div>
@@ -276,6 +351,7 @@ export default function ManagerDashboardPage() {
         <Link href="/manager/leases" className="rounded border px-4 py-2 text-sm">Leases</Link>
         <Link href="/manager/applications" className="rounded border px-4 py-2 text-sm">Applications</Link>
         <Link href="/manager/reporting" className="rounded border px-4 py-2 text-sm">Reporting</Link>
+        <Link href="/manager/rent-optimization/lease-pricing" className="rounded border px-4 py-2 text-sm">Lease Pricing</Link>
       </section>
     </main>
   );

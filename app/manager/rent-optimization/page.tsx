@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { generateRentRecommendations, getPendingRentRecommendations, getRecentRentRecommendations, getRentRecommendationStats } from "@/lib/api";
 
@@ -53,6 +54,11 @@ export default function ManagerRentOptimizationPage() {
       <header>
         <h1 className="text-2xl font-semibold">Rent Optimization</h1>
         <p className="text-sm text-gray-500">Recommendation stats, pending queue, and targeted generation.</p>
+        <div className="mt-3">
+          <Link href="/manager/rent-optimization/lease-pricing" className="rounded border px-4 py-2 text-sm inline-flex">
+            Open Lease Pricing Matrix
+          </Link>
+        </div>
       </header>
 
       {error && <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}

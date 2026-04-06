@@ -14,6 +14,7 @@ const navItems = [
   { label: "Billing Ops", href: "/manager/billing", module: "finance" as const },
   { label: "Payments Ops", href: "/manager/payments-ops", module: "finance" as const },
   { label: "Rent AI", href: "/manager/rent-optimization", module: "ai" as const },
+  { label: "Lease Pricing", href: "/manager/rent-optimization/lease-pricing", module: "ai" as const },
   { label: "QuickBooks", href: "/manager/quickbooks", module: "finance" as const },
   { label: "Documents", href: "/manager/documents", module: "properties" as const },
   { label: "Schedule", href: "/manager/schedule", module: "core" as const },
