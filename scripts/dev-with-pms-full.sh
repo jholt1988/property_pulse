@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PULSE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PMS_DIR="${PMS_DIR:-/data/.openclaw/workspace/pms-master}"
+PMS_DIR="${PMS_DIR:-../pms-master}"
 
 if [ ! -d "$PMS_DIR" ]; then
   echo "❌ pms-master directory not found: $PMS_DIR"
@@ -13,7 +13,7 @@ fi
 echo "🚀 Starting full pms-master stack (core + property-os + ml)..."
 (
   cd "$PMS_DIR"
-  docker compose --profile property-os --profile ml up -d postgres redis mil backend workflow-engine ml-service
+  docker compose --profile property-os --profile ml up -d postgres redis mil backend workflow-engine ml-service --build
 )
 
 echo "✅ Full backend stack is up."

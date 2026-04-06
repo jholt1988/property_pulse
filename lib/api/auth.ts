@@ -1,7 +1,7 @@
 import { apiClient } from "./client";
 
 type LoginResponse = {
-  access_token?: string;
+  accessToken?: string;
   [key: string]: unknown;
 };
 

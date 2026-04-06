@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setError(null);
     setMfaRequired(false);
@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     try {
       const data = await loginRequest({ username, password, mfaCode: mfaCode || undefined });
-      if (data.access_token) {
+      if (typeof data.access_token === "string") {
         const role = extractRoleFromToken(data.access_token);
 
         const sessionRes = await fetch("/api/auth/session", {
